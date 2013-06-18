@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>tobserverTest</title>
+<script type="text/javascript" src="tobserver.js"></script>
+<script src="jquery.js"></script>
+<script src="data.js"></script>
+<script type="text/javascript">
+
+var model=new tobservable(someData);
+$(function(){
+//controller
+	model.registerObserver(new nameView($('#person0Name')),'persons');
+	model.registerObserver(new PhonelistView($('#container')),'blumen');
+	model.registerObserver(
+		new model.stdView(
+			$('#stdViewTest'),
+			'persons.1.name'
+		),'persons.1.name'
+	);
+})
+
+function sortPhonesByName(){
+	model.run('blumen.sort',[
+		function(a,b){return a.name.localeCompare(b.name);}
+	]);
+}
+
+function nameView(node){
+	//on Update It Will Update The Node.html()
+    this.update=function(){
+	    node.html(someData['persons'][0]['name']);
+	}
+}
+function PhonelistView(node){
+	this.update=function(){
+		node.html('');
+		var flover=someData.blumen;
+		for(phone in flover){
+			node.append($('<div>').append(
+				$('<div>',{'class':'name'}).append(
+					flover[phone].name
+				)
+			))
+		}
+	}
+}
+</script>
+</head>
+<body>
+<input id="nameInput" value="test" type="text" onKeyUp="model.set('persons.0.name',$(this).attr('value'));">
+<div>persons.0.Name: <div id="person0Name" style="display:inline;">template</div>
+
+</div>
+<div onClick="var text=someData.persons[0].name; model.get('persons').get(0).set('name','-'+text+'-')">change Name</div>
+<div id="container" style="background-color:lightblue; width: 400px;"></div>
+person.1.name: <strong id="stdViewTest"></strong>
+
+</body>
+</html>
