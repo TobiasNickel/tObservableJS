@@ -22,3 +22,5 @@ in .run the secound argument is an Array, that contains the arguments for the me
 the tobservableTest.html demonstrate how well the html is keeped in sync with the data.
 
 during the next time I wand to make it more comfortable to play around with some basic observers.
+
+feel free to read the source of the tobservable.js and the tobservableTest.html it is not that much.
