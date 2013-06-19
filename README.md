@@ -4,9 +4,10 @@ tobservablejs
 the TobservableJS is supporting the coding in the MVC pattern. You just hand over your DataObject to a new tobservable. 
 then you can add some observer to the module.
 an observer should have this basic structure
+
 {
-  name:'some_name',
-  update:function(){//your code.}
+  name:'some_name', 
+  update:function(){ //your code. } 
 }
 
 The observer are used for the Views. they get notified with the Update-method, when the data changed or get touched.
