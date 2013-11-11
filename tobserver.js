@@ -118,7 +118,7 @@ function tobservable(pData, pObserverTree, pPath) {
                         for (var ii in that.$listener) 
                             if (typeof that.$listener[ii].name === 'string' && that.$listener[ii].name === PropName) 
                                 that.$listener.splice(that.$listener[ii], 1);
-        };
+        }; 
 
         this.runUpdate = function( pPath) {
             if (typeof(pPath) === "undefined")
