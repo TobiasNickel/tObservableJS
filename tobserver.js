@@ -57,9 +57,9 @@ function tobservable(pData, pObserverTree, pPath) {
 		that.observer.addListener(tObserver, pPath);
 	};
 	//remove the listener on the given path, where the last value is the name property of the observable, 
-	//if it is not existing, it nothing will get removed.
+	//if it is not existing, it will remove nothing.
 	this.removeObserver = function(path) {
-		that.observer.removeListener(that.observer, path);
+		that.observer.removeListener(path);
 	};
 
 	this.notify = function(path) {
@@ -101,23 +101,21 @@ function tobservable(pData, pObserverTree, pPath) {
 				that.$listener.push(pListener);
 		};
 		// remove the Listener, that 
-		this.removeListener = function(pListener, pPath) {
-			if (typeof(pPath) === "undefined") {
+		this.removeListener = function(pPath) {
+			if (typeof(pPath) === "undefined") 
 				pPath = '';
-			}
 			var pathParts = pPath.split('.');
 			pathParts = removeEmptyStrings(pathParts);
 			if (pathParts.length > 1) {
 				var PropName = toProertyname(pathParts[0]);
 				pathParts.shift();
 				if (typeof(that[PropName]) !== 'undefined')
-					that[PropName].runUpdate( mergeToPath(pathParts));
+					that[PropName].removeListener( mergeToPath(pathParts));
 			} else 
-				if (pathParts.length === 1) 
-					if (typeof(that[pathParts[0]]) !== 'undefined') 
-						for (var ii in that.$listener) 
-							if (typeof that.$listener[ii].name === 'string' && that.$listener[ii].name === PropName) 
-								that.$listener.splice(that.$listener[ii], 1);
+				if (pathParts.length === 1 && typeof(that[pathParts[0]]) !== 'undefined') 
+					for (var ii in that.$listener) 
+						if (typeof that.$listener[ii].name === 'string' && that.$listener[ii].name === PropName) 
+							that.$listener.splice(that.$listener[ii], 1);
 		};
 
 		this.runUpdate = function( pPath) {
@@ -162,33 +160,46 @@ function tobservable(pData, pObserverTree, pPath) {
 			else 
 				this.addListener(pObserver, pNextPath);
 	}
+	var stdClassName="TobservableView";
 	this.initDomViews=function(){
-		var stdname="TobservableView";
-		var round=0;
-		var classname=stdname;
-		var elements=document.getElementsByClassName(classname);
-		do{
-			for(var i=0; i < elements.length; i++)
-				new stdElementView(elements[i],that);			
-			round++;
-			classname=stdname+round;
-			elements=document.getElementsByClassName(classname);
-		}while(elements.length>0);
-	};
+		var elements=document.getElementsByClassName(stdClassName);
+		for(var i=0; i < elements.length; i++)
+			new stdElementView(elements[i],that);
+		// liveupdate in the dom
+		document.addEventListener('DOMNodeInserted',function(ev){
+			var node=ev.srcElement;
+			if(hasClass(node, stdClassName) && typeof node._tName=="undefined" ){
+			
+				//console.log(node,"added");
+				new stdElementView(node,model);
+			}
+		});
+		document.addEventListener('DOMNodeRemoved',function(ev){
+			var node=ev.srcElement;
+			if(hasClass(node, stdClassName) && typeof node._tName!=="undefined"){
+				//console.log(node,"removed");
+				var tPath=node.getAttribute("tPath");
+				tPath=tPath!=null?tPath:"";
+				model.removeObserver(tPath+"."+node._tName);
+			}
+		});			
+	}; 
 	function stdElementView(e,model){
-		var tProp=e.getAttribute("tProp");
-		var tPath=e.getAttribute("tPath");
+		var tProp=e.getAttribute("tprop");
+		var tPath=e.getAttribute("tpath");
 		tPath=tPath!=null?tPath:"";
-		var tFilter=e.getAttribute("tFilter");
+		var tFilter=e.getAttribute("tfilter");
 		var defaultValue="";
 		if(tProp==null)
 			defaultValue=e.innerHTML;
 		else 
 			defaultValue=e.getAttribute(tProp);
-			
+		var name="tObserverName"+Math.random()*10000000000000000;
+		this.name=name;
+		e._tName=name;
 		this.update=function(){
 			var v=model.get(tPath).data;
-			v= v!=null?v:defaultValue;
+			v= typeof v=="string"?v:defaultValue;
 			if(tFilter!==null)
 				v=eval('('+tFilter+'('+v+'))');
 			if(tProp==null)
@@ -197,5 +208,14 @@ function tobservable(pData, pObserverTree, pPath) {
 				e.setAttribute(tProp,v);
 		};
 		model.registerObserver(this,tPath);
+		this.update();
 	}
 }
+function hasClass( elem, klass ) {
+     return (" " + elem.className + " " ).indexOf( " "+klass+" " ) > -1;
+}
+var data = {};
+var model = new tobservable(data); ;
+window.addEventListener("load",function(){
+	model.initDomViews();
+});
