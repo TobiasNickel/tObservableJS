@@ -25,8 +25,6 @@
 		this.data = pData; // the ProgrammData
 		this.observer = pObserverTree;
 		this.path = pPath;
-
-		
 	}
 	/**
 	 * will return a tObservable, that observes the given path
@@ -158,14 +156,21 @@
 		for(var i=0; i < elements.length; i++)
 			new this.stdElementView(elements[i],this);
 		// liveupdate in the dom
-		document.addEventListener('DOMNodeInserted',function(ev){
-			var node=ev.srcElement;
-			if(hasClass(node, model.stdClassName) && typeof node._tName==="undefined" )
+		function checkChilds(node){
+			if(hasClass(node, model.stdClassName) 
+					&& node._tName==undefined )
 				new model.stdElementView(node,model);
+			if(node.children != undefined)
+				for(var i=0;i<node.children.length;i++){
+					checkChilds(node.children[i]);
+				}
+		}
+		document.addEventListener('DOMNodeInserted',function(ev){
+			checkChilds(ev.srcElement)
 		});
 		document.addEventListener('DOMNodeRemoved',function(ev){
 			var node=ev.srcElement;
-			if(hasClass(node, this.stdClassName) && typeof node._tName!=="undefined"){
+			if(hasClass(node, this.stdClassName) && node._tName!=undefined){
 				//console.log(node,"removed");
 				var tPath=node.getAttribute("tPath");
 				tPath=tPath!==null?tPath:"";
@@ -199,9 +204,14 @@
 			if(tFilter!==null)
 				v=eval('('+tFilter+'('+v+'))');
 			if(tProp===null)
-				e.innerHTML=v;
+				if(e.innerHTML!=v)
+					e.innerHTML=v;
+			else if(tProp=="value")
+				if(e.value!=v)
+					e.value=v;
 			else
-				e.setAttribute(tProp,v);
+				if(e.getAttribute(tProp)!=v)
+					e.setAttribute(tProp,v);
 		};
 		model.registerObserver(this,tPath);
 		this.update();
@@ -221,10 +231,10 @@
 			
 			
 			//run initialisation of observertree
-			if (typeof(pNextPath) === "undefined") 
+			if (pNextPath == undefined) 
 				pNextPath = '';
 			
-			if (typeof(pObserver) !== "undefined")
+			if (pObserver != undefined)
 				if (pNextPath === '') 
 					this.$listener.push(pObserver);
 				else 
@@ -240,7 +250,7 @@
 			if (pathParts.length > 0) {
 				var prop = this.toProertyname(pathParts[0]);
 				pathParts.shift();
-				if (typeof(this[prop]) === "undefined")
+				if (this[prop] == undefined)
 					this[prop] = new observerTree(pListener, mergeToPath(pathParts));
 				else 
 					this[prop].addListener(pListener, mergeToPath(pathParts));
@@ -256,14 +266,14 @@
 		 * @returns {undefined}
 		 */
 		observerTree.prototype.runUpdate = function(pPath) {
-			if (typeof(pPath) === "undefined")
+			if (pPath == undefined)
 				pPath = '';
 			for (var ii in this.$listener) 
 				this.$listener[ii].update();
 			var pathParts = this.removeEmptyStrings(pPath.split('.'));
 			if (pathParts.length > 0) {
 				var PropName = this.toProertyname(pathParts[0]);
-				if (typeof(this[PropName]) !== 'undefined') {
+				if (this[PropName] != undefined) {
 					pathParts.splice(0, 1);//TODO
 					this[PropName].runUpdate( mergeToPath(pathParts));
 				}
@@ -279,17 +289,17 @@
 		 * @returns {void}
 		 */
 		observerTree.prototype.removeListener = function(pPath) {
-			if (typeof(pPath) === "undefined") 
+			if (pPath == undefined) 
 				pPath = '';
 			var pathParts = pPath.split('.');
 			pathParts = this.removeEmptyStrings(pathParts);
 			if (pathParts.length > 1) {
 				var PropName = this.toProertyname(pathParts[0]);
 				pathParts.shift();
-				if (typeof(this[PropName]) !== 'undefined')
+				if (this[PropName] != undefined)
 					this[PropName].removeListener( mergeToPath(pathParts));
 			} else 
-				if (pathParts.length === 1 && typeof(this[pathParts[0]]) !== 'undefined') 
+				if (pathParts.length === 1 && this[pathParts[0]] != undefined) 
 					for (var ii in this.$listener) 
 						if (typeof this.$listener[ii].name === 'string' && this.$listener[ii].name === PropName) 
 							this.$listener.splice(this.$listener[ii], 1);
