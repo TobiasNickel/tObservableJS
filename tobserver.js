@@ -25,6 +25,7 @@
 		this.data = pData; // the ProgrammData
 		this.observer = pObserverTree;
 		this.path = pPath;
+
 	}
 	/**
 	 * will return a tObservable, that observes the given path
@@ -144,7 +145,7 @@
 	 * the name of the HTML-class for the elements that are going to became updated by std views
 	 * @type String
 	 */
-	tobservable.prototype.stdClassName="TobservableView";
+	tobservable.prototype.stdClassName="TobserverView";
 	
 	/**
 	 * get all HTML objects with the given klass, and makes a view with them.
@@ -152,39 +153,32 @@
 	 * @returns {undefined}
 	 */
 	tobservable.prototype.initDomViews=function(){
-		var elements=document.getElementsByClassName(model.stdClassName);
+		var elements=document.getElementsByClassName(tobserver.stdClassName);
 		for(var i=0; i < elements.length; i++)
 			new this.stdElementView(elements[i],this);
 		// liveupdate in the dom
-		function checkChilds(node){
-			if(hasClass(node, model.stdClassName) 
-					&& node._tName==undefined )
-				new model.stdElementView(node,model);
-			if(node.children != undefined)
-				for(var i=0;i<node.children.length;i++){
-					checkChilds(node.children[i]);
-				}
-		}
 		document.addEventListener('DOMNodeInserted',function(ev){
-			checkChilds(ev.srcElement)
+			var node=ev.srcElement;
+			if(hasClass(node, tobserver.stdClassName) && typeof node._tName==="undefined" )
+				new tobserver.stdElementView(node,tobserver);
 		});
 		document.addEventListener('DOMNodeRemoved',function(ev){
 			var node=ev.srcElement;
-			if(hasClass(node, this.stdClassName) && node._tName!=undefined){
+			if(hasClass(node, this.stdClassName) && typeof node._tName!=="undefined"){
 				//console.log(node,"removed");
 				var tPath=node.getAttribute("tPath");
 				tPath=tPath!==null?tPath:"";
-				model.removeObserver(tPath+"."+node._tName);
+				tobserver.removeObserver(tPath+"."+node._tName);
 			}
 		});			
 	}; 
 	/**
 	 * the stdView, that is used for document-nodes
 	 * @param {dom-node} e
-	 * @param {tobservable} model
+	 * @param {tobservable} tobserver
 	 * @returns {tobservable.stdElementView}
 	 */
-	tobservable.prototype.stdElementView=function (e,model){
+	tobservable.prototype.stdElementView=function (e,tobserver){
 		var tProp=e.getAttribute("tprop");
 		var tPath=e.getAttribute("tpath");
 		tPath=tPath!==null?tPath:"";
@@ -198,22 +192,17 @@
 		this.name=name;
 		e._tName=name;
 		this.update=function(){
-			var v=model.get(tPath).data;
+			var v=tobserver.get(tPath).data;
 			v= typeof v === "number"?v+"":v;
 			v= typeof v==="string"?v:defaultValue;
 			if(tFilter!==null)
 				v=eval('('+tFilter+'('+v+'))');
 			if(tProp===null)
-				if(e.innerHTML!=v)
-					e.innerHTML=v;
-			else if(tProp=="value")
-				if(e.value!=v)
-					e.value=v;
+				e.innerHTML=v;
 			else
-				if(e.getAttribute(tProp)!=v)
-					e.setAttribute(tProp,v);
+				e.setAttribute(tProp,v);
 		};
-		model.registerObserver(this,tPath);
+		tobserver.registerObserver(this,tPath);
 		this.update();
 	}
 	/**
@@ -231,10 +220,10 @@
 			
 			
 			//run initialisation of observertree
-			if (pNextPath == undefined) 
+			if (typeof(pNextPath) === "undefined") 
 				pNextPath = '';
 			
-			if (pObserver != undefined)
+			if (typeof(pObserver) !== "undefined")
 				if (pNextPath === '') 
 					this.$listener.push(pObserver);
 				else 
@@ -250,7 +239,7 @@
 			if (pathParts.length > 0) {
 				var prop = this.toProertyname(pathParts[0]);
 				pathParts.shift();
-				if (this[prop] == undefined)
+				if (typeof(this[prop]) === "undefined")
 					this[prop] = new observerTree(pListener, mergeToPath(pathParts));
 				else 
 					this[prop].addListener(pListener, mergeToPath(pathParts));
@@ -266,14 +255,14 @@
 		 * @returns {undefined}
 		 */
 		observerTree.prototype.runUpdate = function(pPath) {
-			if (pPath == undefined)
+			if (typeof(pPath) === "undefined")
 				pPath = '';
 			for (var ii in this.$listener) 
 				this.$listener[ii].update();
 			var pathParts = this.removeEmptyStrings(pPath.split('.'));
 			if (pathParts.length > 0) {
 				var PropName = this.toProertyname(pathParts[0]);
-				if (this[PropName] != undefined) {
+				if (typeof(this[PropName]) !== 'undefined') {
 					pathParts.splice(0, 1);//TODO
 					this[PropName].runUpdate( mergeToPath(pathParts));
 				}
@@ -289,17 +278,17 @@
 		 * @returns {void}
 		 */
 		observerTree.prototype.removeListener = function(pPath) {
-			if (pPath == undefined) 
+			if (typeof(pPath) === "undefined") 
 				pPath = '';
 			var pathParts = pPath.split('.');
 			pathParts = this.removeEmptyStrings(pathParts);
 			if (pathParts.length > 1) {
 				var PropName = this.toProertyname(pathParts[0]);
 				pathParts.shift();
-				if (this[PropName] != undefined)
+				if (typeof(this[PropName]) !== 'undefined')
 					this[PropName].removeListener( mergeToPath(pathParts));
 			} else 
-				if (pathParts.length === 1 && this[pathParts[0]] != undefined) 
+				if (pathParts.length === 1 && typeof(this[pathParts[0]]) !== 'undefined') 
 					for (var ii in this.$listener) 
 						if (typeof this.$listener[ii].name === 'string' && this.$listener[ii].name === PropName) 
 							this.$listener.splice(this.$listener[ii], 1);
@@ -354,8 +343,7 @@ var mergeToPath=function(array) {
 			out += '.' + array[ii];
 	return out;
 }
-var data = {};
-var model = new tobservable(data); ;
+var tobserver = new tobservable(window); ;
 window.addEventListener("load",function(){
-	model.initDomViews();
+	tobserver.initDomViews();
 });
