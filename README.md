@@ -1,10 +1,12 @@
 tobservablejs
 =============
-
+<p>
 the TobservableJS is supporting the JS-coding with the MVC pattern. 
-A "data" object and a "model" is created. so you know where your data are and where to access them.
-
-with an observer you can be notified when the data might change.
+A "var tobserver" object is created. it will help you to manage the Views and notify them when the data has changed. Therefore it is nessasary to update all values in the data through tobserver.  
+</p>
+<p>
+with an observer you can be notified when the data might change. Using the <b>tobserver.registerObserver( view, path );</b> mothod you will register the Observer. the Observer needs the following structure. The path is a string, discribing path from globalscope. Array-Indexes are also written in dot-notation.
+</p>
 ```js
 {
   name:'some_name', // used to remove the observer
