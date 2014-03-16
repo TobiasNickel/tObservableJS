@@ -31,18 +31,19 @@ the tobservableTest.html demonstrate how well the html is keeped in sync with th
 </p>
 <p>
 In the latest version I added a feature called "pure HTML-views" simple add some attributes to a HTML element and it will be a basic observer.
-
-
 </p>
+<h3 background-color="red">
+In this update I just make a huge announcement: the HTML-ViewSystem is rebuild and will support in near future recursive reproduction ! ! ! it will became owesome
+</h3>
 ```HTML
-    <div class="TobserverView" tPath="nextWord.text">[next word]</div>
-        a simple view, displaying the current value of data.nextWord.text.
+<div class="TobserverView" tPath="nextWord.text">[next word]</div>
+     a simple view, displaying the current value of data.nextWord.text.
 
-    <input class="TobserverView" tPath="nextWord.text" tprop="value" />
-        a input element where the value need to be displayed in the "value"-attribute.
+<input class="TobserverView" tPath="nextWord.text" tprop="value" />
+     a input element where the value need to be displayed in the "value"-attribute.
 
-    <span class="TobserverView" tPath="some.time.in.ms" tfilter="function(b){return b/1000+' s';}"></span>
-        a view that uses the Filter to display the value devided by 1000 and adding an s.
+ <span class="TobserverView" tPath="some.time.in.ms" tfilter="function(b){return b/1000+' s';}"></span>
+     a view that uses the Filter to display the value devided by 1000 and adding an s.
 ```
 <p>
 Feel free to read the source of the tobservable.js and the tobservableTest.html it is not that much.
