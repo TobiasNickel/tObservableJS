@@ -1,6 +1,6 @@
 # tObservableJS
 
-tObservableJS will make programming much more enjoyable. The Final version fitting to this Documentation, will be released during this week.
+tObservableJS will make programming much more enjoyable. 
 
 ###The big plus points are:
   1. Learning even less vocabulary
@@ -8,7 +8,7 @@ tObservableJS will make programming much more enjoyable. The Final version fitti
   3. Getting the comfort as you might love in MVC-frameworks
   4. 100% debug-friendly
   5. Writing less code to manipulate the DOM
-  6. Use the same Framework for Client- and Serverside-Javascript
+  6. Use the same Framework for Client- and Serverside-Javascript(nodeJS)
   7. Ready to use your favorit support framework. i.e.: jQuery, bootstrap, Underscore,...
   8. Recursive HTML-View-System, able to display any structured javascript-data.
 
@@ -19,12 +19,11 @@ tObservableJS will make programming much more enjoyable. The Final version fitti
 You have a Model, it is The Window-Object as you know it, the global scope.
 The motivation to devlelop tObservableJS, was to make all data observable to keep them everywhere in sync. 
 
-
 | **the user-interface**  | **⇐⇒** | **the client-application**  | **⇐⇒**  |**database at the webserver**|
 | :---------------------- |:-------:|:---------------------------:|:--------:| ---------------------------:|
 
 ### Controller - tobserver
-To do so an MVC framework always need to know when the data get changed. Sadly there is to way in JS to register at any point in the data-objects. Thats the point where tObservableJS cames into the game. It defines the *tobserver**-object, it is the only Javascript object, you need to learn new, to use tObservableJS. tObservableJS now needs your help. If you manipilate some information in your data-Objects, you do it through the tobserver. To do so, it provides two Metods. So here is the complete methodlist of the tobserver-object, that you will need during the work.
+To do so an MVC framework always need to know when the data get changed. Sadly there is to way in JS to register at any point in the data-objects. Thats the point where tObservableJS cames into the game. It defines the **tobserver**-object. It is the only Javascript object, you need to learn new, to use tObservableJS. tObservableJS now needs your help. If you manipilate some information in your data-Objects, you do it through the tobserver. To do so, it provides some Metods. So here is the complete methodlist of the tobserver-object, that you will need during the work.
 
 * **.set(** *string* **path,** *mixed* **value):** to update the information and notify all observer that belong to the given information
   * path: descripts is the data you want to set, beginning from the window-object, using dot-notation also for arrays.
@@ -57,10 +56,12 @@ observer= new function(){
 // or you can have a class that is prototyped with an update-method. 
 // It is only important that you can call observer.update()
 ```
-In that way, you manage by yourselve, what kind of observer you program. one for everything, seperate for UI and communication or use them to store and restore information to local storage. 
+In that way, you manage by yourselve, what kind of observer you program. One for everything, seperate for UI and communication or use them to store, restore information to local storage or implementing your businesslogic. 
+
+With this thinks in your hand, you should be able to structure your Web-Appliacation. The first Web-Apps, that have been using tObservableJS, only has used the basic tobserver and impletmenten all UI Views by itself.
 
 ### HTML Views
-The tObservableJS framework, provides a smart way, to write HTML-themplates that will get compiled automaticly by using the data they belong too. When the data get updated through the tobserver, the views will also keeped up to date. I will describe the view-System on a simple example, with a Page, that is displaying a list of image-Galleries. The steps from this documentation are available as files unter "/tutorial". We create an .html-file, write some put all our app-Data to a new object, within a script-tag in the head.
+But tObservableJS framework, provides a smarter way, to write HTML-themplates that will get compiled automaticly by using the data they belong too. When the data get updated through the tobserver, the views will also keeped up to date. I will describe the view-System on a simple example, with a Page, that is displaying a list of image-Galleries. The steps from this documentation are available as files unter "/tutorial". We create an .html-file, write some put all our app-Data to a new object, within a script-tag in the head.
 ```HTML
 <!-- step 1 -->
 <!DOCTYPE html>
