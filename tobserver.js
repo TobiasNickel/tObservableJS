@@ -73,7 +73,7 @@
 			if (run) {
 				var out = this.data[name].apply(this.data, value);
 				this.notify(name);
-				return out;
+				return this;
 			} else {
 				this.data[name] = value;
 				this.notify(name);
@@ -81,7 +81,7 @@
 			}
 		} else {
 			name = pathParts.pop();
-			this.get(mergeToPath(pathParts)).set(name, value, run);
+			return this.get(mergeToPath(pathParts)).set(name, value, run);
 		}
 	};
 	
@@ -142,70 +142,6 @@
 	
 	
 	/**
-	 * the name of the HTML-class for the elements that are going to became updated by std views
-	 * @type String
-	 */
-	tobservable.prototype.stdClassName="TobserverView";
-	
-	/**
-	 * get all HTML objects with the given klass, and makes a view with them.
-	 * if also register observer ther on the DOM to create StdViews for the elements that are new Created
-	 * @returns {undefined}
-	 */
-	tobservable.prototype.initDomViews=function(){
-		var elements=document.getElementsByClassName(tobserver.stdClassName);
-		for(var i=0; i < elements.length; i++)
-			new this.stdElementView(elements[i],this);
-		// liveupdate in the dom
-		document.addEventListener('DOMNodeInserted',function(ev){
-			var node=ev.srcElement;
-			if(hasClass(node, tobserver.stdClassName) && typeof node._tName==="undefined" )
-				new tobserver.stdElementView(node,tobserver);
-		});
-		document.addEventListener('DOMNodeRemoved',function(ev){
-			var node=ev.srcElement;
-			if(hasClass(node, this.stdClassName) && typeof node._tName!=="undefined"){
-				//console.log(node,"removed");
-				var tPath=node.getAttribute("tPath");
-				tPath=tPath!==null?tPath:"";
-				tobserver.removeObserver(tPath+"."+node._tName);
-			}
-		});			
-	}; 
-	/**
-	 * the stdView, that is used for document-nodes
-	 * @param {dom-node} e
-	 * @param {tobservable} tobserver
-	 * @returns {tobservable.stdElementView}
-	 */
-	tobservable.prototype.stdElementView=function (e,tobserver){
-		var tProp=e.getAttribute("tprop");
-		var tPath=e.getAttribute("tpath");
-		tPath=tPath!==null?tPath:"";
-		var tFilter=e.getAttribute("tfilter");
-		var defaultValue="";
-		if(tProp===null)
-			defaultValue=e.innerHTML;
-		else 
-			defaultValue=e.getAttribute(tProp);
-		var name="tObserverName"+Math.random()*10000000000000000;
-		this.name=name;
-		e._tName=name;
-		this.update=function(){
-			var v=tobserver.get(tPath).data;
-			v= typeof v === "number"?v+"":v;
-			v= typeof v==="string"?v:defaultValue;
-			if(tFilter!==null)
-				v=eval('('+tFilter+'('+v+'))');
-			if(tProp===null)
-				e.innerHTML=v;
-			else
-				e.setAttribute(tProp,v);
-		};
-		tobserver.registerObserver(this,tPath);
-		this.update();
-	}
-	/**
 	 * @class
 	 * @private
 	 * Only used by the tobservable to manage the observer
@@ -218,7 +154,6 @@
 			var that = this;
 			this.$listener = [];
 			
-			
 			//run initialisation of observertree
 			if (typeof(pNextPath) === "undefined") 
 				pNextPath = '';
@@ -229,9 +164,6 @@
 				else 
 					this.addListener(pObserver, pNextPath);
 		}
-		//***********
-		// code here for observerTree
-		//***********
 		//to add a Listener to the tree
 		observerTree.prototype.addListener = function(pListener, pPath) {
 			var pathParts = pPath.split('.');
@@ -312,6 +244,247 @@
 		return observerTree;
 	})();
 
+	/**
+	 * the name of the HTML-class for the elements that are going to became updated by std views
+	 * @type String
+	 */
+	tobservable.prototype.stdClassName="tObserver";
+	
+	/**
+	 * get all HTML objects with the given klass, and makes a view with them.
+	 * if also register observer ther on the DOM to create StdViews for the elements that are new Created
+	 * @returns {undefined}
+	 */
+	tobservable.prototype.initDomViews=function(){
+		//todo: change this loop to go through the tree recursive 
+		this.findTObserver();
+			
+		// liveupdate in the dom
+		window.bindEvent(document,'DOMNodeInserted',function(ev){
+			var element=ev.srcElement;
+			new tobserver.findTObserver(element);
+		});
+		//document.addEventListener('DOMNodeInserted',);
+		window.bindEvent(document,'DOMNodeRemoved',function(ev){
+			if(ev.srcElement!=undefined&& ev.srcElement.getAttribute!=undefined)
+				setTimeout(function(){
+					var element=ev.srcElement;
+					var attr=element.getAttribute("tObserver");
+					if(attr!=undefined && element._tName!=undefined){
+						var tPath=attr.path;
+						tPath=tPath!=undefined?tPath:"";
+						tobserver.removeObserver(tPath+"."+element._tName);
+					}
+				},1000)
+		})
+		//document.addEventListener('DOMNodeRemoved',);
+	};
+	tobservable.prototype.findTObserver=function(element){
+		if(element==undefined){ element=document.getElementsByTagName("html")[0];}
+		var attr=element.getAttribute==undefined?undefined:element.getAttribute("tObserver");
+		var kids = element.children;
+		if(attr==null)
+			for(var s in kids)
+				tobserver.findTObserver(kids[s])
+		else 
+			new tobserver.StdElementView(element,this);
+		
+				
+	}; 
+	
+	/**
+	 * the stdView, that is used for document-nodes
+	 * @param {dom-node} e
+	 * @param {tobservable} tobserver
+	 * @returns {tobservable.StdElementView}
+	 */
+	tobservable.prototype.StdElementView=function(){
+		/**
+		 *	Contstructor for a StdElementView
+		 * 	it can be a simple view, or a htmlList-View. 
+		 */
+		function StdElementView(element,tobserver){
+			//todo: parse the tobserver-attr as {JSON}
+			var attr=element.getAttribute("tObserver")
+			if(attr==null)return;
+			if(element._tName!=undefined)return;
+			attr=eval("({"+attr+"})");
+			attr.path=attr.path != undefined ? attr.path : "";
+			
+			this.element=element;
+			
+			
+			
+			if(attr.type=="htmlList"){
+				attr.defaultValue=element.innerHTML;
+				attr.preview=this.element.innerHTML;
+				this.element.innerHTML="";
+			}else{
+				attr.defaultValue=element.getAttribute(attr.type);
+			}
+			attr.beforeAdd		=attr.beforeAdd!=undefined		?attr.beforeAdd		:tobserver.utils.stdViewBehavior.beforeAdd;
+			attr.afterAdd		=attr.afterAdd!=undefined		?attr.afterAdd		:tobserver.utils.stdViewBehavior.afterAdd;
+			attr.beforeRemove	=attr.beforeRemove!=undefined	?attr.beforeRemove	:tobserver.utils.stdViewBehavior.beforeRemove;
+			attr.afterRemove	=attr.afterRemove!=undefined	?attr.afterRemove	:tobserver.utils.stdViewBehavior.afterRemove;
+			attr.beforeUpdate	=attr.beforeUpdate!=undefined	?attr.beforeUpdate	:tobserver.utils.stdViewBehavior.beforeUpdate;
+			attr.afterUpdate	=attr.afterUpdate!=undefined	?attr.afterUpdate	:tobserver.utils.stdViewBehavior.afterUpdate;
+		
+			var name="tObserverName"+Math.random()*10000000000000000;
+			this.name=name;
+			this.element._tName=name;
+			this.element._tObserver=this;
+			this.element.attr=attr;
+			this.attr=attr;
+			tobserver.registerObserver(this,attr.path);
+			this.update();
+		}
+		/**
+		 *	the standard updatemethod, called by the tObserver
+		 */
+		StdElementView.prototype.update=function(){
+			var v=tobserver.get(this.attr.path).data;
+			v= typeof v === "number"?v+"":v;
+			if(!Array.isArray(v))
+				v= typeof v==="string"?v:this.attr.defaultValue;
+			var orgData=v;
+			if(this.attr.filter!=undefined)
+				v=this.attr.filter(v);
+			switch(this.attr.type){
+				case undefined:
+					if(this.element.innerHTML!=v){
+						this.element.innerHTML=v;
+						this.attr.afterUpdate(this.element);
+					}
+				break;
+				case 'htmlList':this.updateList(v,orgData); break;
+				default: this.element.setAttribute(this.attr.type,v);
+			}
+		};
+		/**
+		 *	the speaciel bevavior of the htmlList-Views
+		 */
+		StdElementView.prototype.updateList=function updateList(data,orgData){
+			var kids=this.element.children;
+			var displayedData=[];
+			var displayedElements=[];
+			//remove deleted Elements and saving the position on the kids
+			for(var i=0;i<kids.length;i++){
+				
+				var newPosition=data.indexOf(kids[i].item)
+				
+				if(newPosition==-1){
+					kids[i].innerHTML=kids[i].innerHTML.replace("tobserver","removedtObserver").trim();;
+					this.attr.beforeRemove(kids[i],function(e){
+						if(e!=undefined)e.remove();
+					})
+				}else{
+					displayedData.push(kids[i].item);
+					if(kids[i].tagName=="TOBSERVERLISTITEM"){
+						if(newPosition!=kids[i].position){
+							this.updateRootPath(kids[i],this.attr.path+"."+newPosition,this.attr.path+"."+kids[i].position);
+						}
+						kids[i].position=newPosition;
+						displayedElements.push(kids[i]);
+					
+					}
+				}
+			}
+			displayedElements.sort(function(a,b){return a.position-b.position});
+			for(var i=0;i<displayedElements.length;i++){
+				this.element.appendChild(displayedElements[i]);
+			}
+			
+			//appendNewElements
+			var listIndex=0;
+			for(var i=0;i<data.length;i++){
+				
+				if(displayedElements[listIndex]!=undefined&&data[i]==displayedElements[listIndex].item)
+					listIndex++;
+				else{
+					//create new insertBefore
+					var orgIndex=orgData.indexOf(data[i]);
+					var kid=document.createElement("tObserverListItem");
+					
+					kid.innerHTML=this.attr.preview;
+					this.findAndUpdatePath(kid,this.attr.path+"."+orgIndex);
+					kid.position=i;
+					kid.item=data[i];
+					if(displayedElements[listIndex]!=undefined)
+						displayedElements[listIndex].parentNode.insertBefore(kid, displayedElements[listIndex] );
+					else this.element.appendChild(kid);
+					
+					tobserver.findTObserver(kid);
+					this.attr.beforeAdd(kid);
+					this.attr.afterAdd(kid);
+				}	
+			}
+			
+			kids=this.element.children;
+						
+		};
+		/**
+		 *	if the Path for the a List-Item has changed, this function will update the childs
+		 */
+		StdElementView.prototype.findAndUpdatePath=function findAndUpdatePath(element,root){
+			var attr=element.getAttribute==undefined?undefined:element.getAttribute("tObserver");
+			var kids = element.children;
+			if(attr==null)
+				for(var s in kids)
+					this.findAndUpdatePath(kids[s],root)
+			else 
+				this.setRoot(element,root);
+			
+		};
+		/**
+		 *	simulat to findAndUpdatePath, but findAndUpdatePath, only can be used for the initialisation of the object.
+		 */
+		StdElementView.prototype.updateRootPath=function updateRootPath(element,newRootPath,oldRootPath){
+			if(element==undefined)return;
+			if(newRootPath==undefined)return;
+			if(oldRootPath==undefined)return;
+			var kids=element.children;
+			for(var i in kids){
+				if(kids[i].attr!=undefined){
+					var realOrgPath=kids[i].attr.path.replace(oldRootPath+'.','')
+					if(kids[i].attr.type=='htmlList'){
+						this.updateRootPath(kids[i],realOrgPath+"."+realOrgPath,oldRootPath+"."+realOrgPath)
+					}
+					tobserver.removeObserver(kids[i].attr.path+"."+kids[i]._tName);
+					tobserver.registerObserver(kids[i]._tObserver,newRootPath+'.'+realOrgPath);
+					kids[i].attr.path=newRootPath+'.'+realOrgPath;
+				}else{
+					this.updateRootPath(kids[i],newRootPath,oldRootPath)
+				}
+			}
+		}
+		/**
+		 *	set the rootPath, for a new created List-View-Element
+		 */
+		StdElementView.prototype.setRoot=function setRoot(element,root){
+			var attr=element.getAttribute("tObserver");
+			attr=attr.replace("path:'","path:'"+root+".");
+			attr=attr.replace('path:"','path:"'+root+'.');
+			element.setAttribute("tObserver",attr);
+		};
+		return StdElementView;
+	}()
+	
+	tobservable.prototype.utils={
+		stdViewBehavior:function(){
+			var emptyFunction=function(){},
+				callSecoundF=function(_,f){f()};
+			return{
+				beforeAdd:emptyFunction,
+				afterAdd:emptyFunction,
+				beforeRemove:callSecoundF,
+				afterRemove:emptyFunction,
+				beforeUpdate:callSecoundF,
+				afterUpdate:emptyFunction
+				
+			}
+		}()
+	};
+	
 	return tobservable;
 })();
 /**
@@ -344,6 +517,20 @@ var mergeToPath=function(array) {
 	return out;
 }
 var tobserver = new tobservable(window); ;
-window.addEventListener("load",function(){
+//window.addEventListener("load",function(){
+//	tobserver.initDomViews();
+//});
+function bindEvent(el, eventName, eventHandler) {
+  if (el.addEventListener){
+    el.addEventListener(eventName, eventHandler, false); 
+  } else if (el.attachEvent){
+    el.attachEvent('on'+eventName, eventHandler);
+  }
+}
+// ...
+bindEvent(window, 'load', function(){
+	var style=document.createElement("style");
+	style.innerHTML="tobserverlistitem{display:inline-block;margin:0px;padding:0px;}";
+	document.getElementsByTagName("head")[0].appendChild(style);
 	tobserver.initDomViews();
 });
