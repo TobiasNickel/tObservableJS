@@ -123,8 +123,7 @@ app.galleries=[
 		images:[
 			{iName:"Library",       iPath:"static/Bibo.jpg"     },
 			{iName:"Haus 5",        iPath:"static/haus5.jpg"    },
-			{iName:"Mensa",         iPath:"static/mensa.jpg"    },
-			{iName:"Sporthalle",    iPath:"static/Sporthalle.jpg"}
+			{iName:"Mensa",         iPath:"static/mensa.jpg"    }
 		]
   },
   {
@@ -147,6 +146,59 @@ To show all photos, we add a list-View into the list-View of step5, that display
 	<div class="gallery">
 		<h2 tobserver="path:'gName'"></h2>
 		<div tObserver="path:'images',type:'htmlList'">
+			<div class="image">
+				<img tobserver="path:'iPath',type:'src'" />
+				<p tobserver="path:'iName'"></p>
+			</div>
+		</div>
+	</div>
+</div>
+```
+In Step 7 we want to add some animation. Therefor we include jQuery and jQuery UI to the head, in this case, simple from the google-CDN.  
+```HTML
+<!-- step 7 -->	
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" />
+<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+```
+In a List, allways when an element is added, updated or removed, you get the chance to react on that. But first we need some functionality to test this. Let us add some buttons with a few functions.
+```JS
+// step7
+function addLibrary(){
+	tobserver.run("app.galleries.0.images.push",[{iName:"Sporthalle",iPath:"static/Sporthalle.jpg"}]);
+}
+function sortWeels(){
+	tobserver.run("app.galleries.1.images.sort",[function(a,b){if(a.iName<b.iName)return -1; else return 1;}]);
+}
+```
+```HTML
+<!-- step 7 - in body-->	
+<input type="button" value="add Sportshall" onclick="addLibrary()">
+<input type="button" value="sort weels" onclick="sortWeels()">
+```
+Now I want to introduce 6 events, with them it is possible to edit the elements when they get added, updated or removed and you have allways a method the chance to manipulate it before and after the event. so the 6 events are:
+```JS
+// step7
+	beforeAdd:		function(element){} 
+	afterAdd:			function(element){}
+	beforeRemove:	function(element,complete){}
+	afterRemove:	function(element){}
+	beforeUpdate:	function(element,complete){complete()}
+	afterUpdate:	function(element){}
+	// the element is allways the node-in the DOM
+	// and complete is always a method, so that the framework knows when it is going on.
+```
+The methods get registered at in the HTML in the tobserver-attribute. To test it, let us make an animation, when a new picture is added to a gallery.
+```HTML
+<!-- step 7 -->	
+<div tObserver="path:'app.galleries',type:'htmlList'" class="gallerieList">
+	<div class="gallery">
+		<h2 tobserver="path:'gName'"></h2>
+		<div tObserver="path:'images',type:'htmlList',afterAdd:function(element){
+				element.style.width='0px'
+				$element=jQuery(element); 
+				$element.animate({width:'300px'},{duration :500,easing:'linear'})
+			}">
 			<div class="image">
 				<img tobserver="path:'iPath',type:'src'" />
 				<p tobserver="path:'iName'"></p>
