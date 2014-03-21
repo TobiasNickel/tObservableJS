@@ -209,9 +209,9 @@ The methods get registered at in the HTML in the tobserver-attribute. To test it
 ```
 As you see, we simple added a JavaScript-function to the afterAdd propertie. You could also write a function and hand it over by its name. In fact, the tobserver-attribute is interpreted with the standard JS function eval(). 
 
-beforeAdd takes the element, before it is attached to the DOM. If you set an inital value there, you save to renter one frame. before- and afterUpdate are simple for animation. beforeUpdate takes an callback, to say, when its animation is over. beforeRemove, gets an Element, that has a copy of the original content, otherwise they would update to a different element. After remove can be used to cache the HTML-Element, to reuse it later.
+beforeAdd takes the element, before it is attached to the DOM. If you set an inital values or add event-listener there, you save to renter one frame. before- and afterUpdate are simple for animation. beforeUpdate takes an callback, to say, when its animation is over. beforeRemove, gets an Element, that has a copy of the original content, otherwise they would update to a different element. After remove can be used to cache the HTML-Element, to reuse it later.
 
-##Thanks
+##Thanks + inspiration
 This framework is developed by Tobias Nickel, a student at the university of applied science in Stralsund/Germany. During a internship at avandeo-limited a teammember told me to look at angular.js. While studying the documentation, I feld, that I do would not write an Javascript-Application, I would write a Angular-application. I thought, there is a lot of overhead to learn to use it properly and not being cut at my creativity. 
 
 After I learned what is an MVC framework in Javascript, I also took a look at knockout and backbone. both frameworks also neet a long overhead to learn and need to fit the application into there framework. tObservable can be added to a project during the work, while having the wish to have the advantage of an MVC.
