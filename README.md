@@ -179,8 +179,8 @@ function sortWeels(){
 Now I want to introduce 6 events, with them it is possible to edit the elements when they get added, updated or removed and you have allways a method the chance to manipulate it before and after the event. so the 6 events are:
 ```JS
 // step7
-	beforeAdd:		function(element){} 
-	afterAdd:			function(element){}
+	beforeAdd:	function(element){} 
+	afterAdd:	function(element){}
 	beforeRemove:	function(element,complete){}
 	afterRemove:	function(element){}
 	beforeUpdate:	function(element,complete){complete()}
@@ -195,7 +195,7 @@ The methods get registered at in the HTML in the tobserver-attribute. To test it
 	<div class="gallery">
 		<h2 tobserver="path:'gName'"></h2>
 		<div tObserver="path:'images',type:'htmlList',afterAdd:function(element){
-				element.style.width='0px'
+				element.style.width='0px';
 				$element=jQuery(element); 
 				$element.animate({width:'300px'},{duration :500,easing:'linear'})
 			}">
@@ -207,3 +207,11 @@ The methods get registered at in the HTML in the tobserver-attribute. To test it
 	</div>
 </div>
 ```
+As you see, we simple added a JavaScript-function to the afterAdd propertie. You could also write a function and hand it over by its name. In fact, the tobserver-attribute is interpreted with the standard JS function eval(). 
+
+beforeAdd takes the element, before it is attached to the DOM. If you set an inital value there, you save to renter one frame. before- and afterUpdate are simple for animation. beforeUpdate takes an callback, to say, when its animation is over. beforeRemove, gets an Element, that has a copy of the original content, otherwise they would update to a different element. After remove can be used to cache the HTML-Element, to reuse it later.
+
+##Thanks
+This framework is developed by Tobias Nickel, a student at the university of applied science in Stralsund/Germany. During a internship at avandeo-limited a teammember told me to look at angular.js. While studying the documentation, I feld, that I do would not write an Javascript-Application, I would write a Angular-application. I thought, there is a lot of overhead to learn to use it properly and not being cut at my creativity. 
+
+After I learned what is an MVC framework in Javascript, I also took a look at knockout and backbone. both frameworks also neet a long overhead to learn and need to fit the application into there framework. tObservable can be added to a project during the work, while having the wish to have the advantage of an MVC.
