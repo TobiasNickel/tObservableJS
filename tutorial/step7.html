@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="../tobserver.js"></script>
+	<script>
+		//initialisation of the app-data in global scope
+		var app={title:"Imagegalleries"};
+		app.galleries=[
+			{
+				gName:"fh-stralsund",
+				images:[
+					{iName:"Library",    iPath:"static/Bibo.jpg"     },
+					{iName:"Haus 5",        iPath:"static/haus5.jpg"    },
+					{iName:"Mensa",         iPath:"static/mensa.jpg"    }
+				]
+			},
+			{
+				gName:"carweels",
+				images:[
+					{iName:"Korean",      iPath:"static/koreaner.jpg" },
+					{iName:"Toyota",        iPath:"static/toyota.jpg"   },
+					{iName:"Volvoreifen",   iPath:"static/Volvo.jpg"    },
+					{iName:"Skoda",         iPath:"static/Skoda.jpg"    },
+					{iName:"Kleinwagen",    iPath:"static/kleinwagen.jpg"},
+					{iName:"VW eins",       iPath:"static/VW01.jpg"     }
+				]
+			}
+		];
+		function addLibrary(){
+			tobserver.run("app.galleries.0.images.push",[{iName:"Sporthalle",iPath:"static/Sporthalle.jpg"}]);
+		}
+		function sortWeels(){
+			tobserver.run("app.galleries.1.images.sort",[function(a,b){if(a.iName<b.iName)return -1; else return 1;}]);
+		}
+	</script>
+	<link rel="stylesheet" type="text/css" href="style.css" />
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" />
+	<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+</head>
+<body>
+	<h1 tobserver="path:'app.title',filter:function(org){return org.toUpperCase();}"></h1>
+
+	<input type="button" value="add Sportshall" onclick="addLibrary()">
+	<input type="button" value="sort weels" onclick="sortWeels()">
+	
+	<div tObserver="path:'app.galleries',type:'htmlList'" class="gallerieList">
+		<div class="gallery">
+			<h2 tobserver="path:'gName'"></h2>
+			<div tObserver="path:'images',type:'htmlList',afterAdd:function(element){
+				element.style.width='0px';
+				$element=jQuery(element); 
+				$element.animate({width:'300px'},{duration :500,easing:'linear'});
+			}">
+				<div class="image">
+					<img tobserver="path:'iPath',type:'src'" />
+					<p tobserver="path:'iName'"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

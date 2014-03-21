@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="../tobserver.js"></script>
+	<script>
+		//initialisation of the app-data in global scope
+		var app={title:"Imagegalleries"};
+		app.galleries=[
+			{gName:"carweels"},
+			{gName:"FH Stralsund buildings"}
+		];
+	</script>
+</head>
+<body>
+	<h1 tobserver="path:'app.title',filter:function(org){return org.toUpperCase();}"></h1>
+
+	<div tObserver="path:'app.galleries',type:'htmlList'">
+		<h2 tobserver="path:'gName'"></h2>
+	</div>
+</body>
+</html>

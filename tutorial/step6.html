@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="../tobserver.js"></script>
+	<script>
+		//initialisation of the app-data in global scope
+		var app={title:"Imagegalleries"};
+		app.galleries=[
+			{
+				gName:"fh-stralsund",
+					images:[
+						{iName:"Library",    iPath:"static/Bibo.jpg"     },
+						{iName:"Haus 5",        iPath:"static/haus5.jpg"    },
+						{iName:"Mensa",         iPath:"static/mensa.jpg"    },
+						{iName:"Sporthalle",    iPath:"static/Sporthalle.jpg"}
+					]
+			},
+			{
+				gName:"carweels",
+					images:[
+						{iName:"Korean",      iPath:"static/koreaner.jpg" },
+						{iName:"Toyota",        iPath:"static/toyota.jpg"   },
+						{iName:"Volvoreifen",   iPath:"static/Volvo.jpg"    },
+						{iName:"Skoda",         iPath:"static/Skoda.jpg"    },
+						{iName:"Kleinwagen",    iPath:"static/kleinwagen.jpg"},
+						{iName:"VW eins",       iPath:"static/VW01.jpg"     }
+					]
+			}
+		];
+	</script>
+	<link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+<body>
+	<h1 tobserver="path:'app.title',filter:function(org){return org.toUpperCase();}"></h1>
+
+	<div tObserver="path:'app.galleries',type:'htmlList'" class="gallerieList">
+		<div class="gallery">
+			<h2 tobserver="path:'gName'"></h2>
+			<div tObserver="path:'images',type:'htmlList'">
+				<div class="image">
+					<img tobserver="path:'iPath',type:'src'" />
+					<p tobserver="path:'iName'"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
