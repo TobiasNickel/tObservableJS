@@ -8,7 +8,7 @@ tObservableJS will make programming much more enjoyable.
   3. Getting the comfort as you might love in MVC-frameworks
   4. 100% debug-friendly
   5. Writing less code to manipulate the DOM
-  6. Use the same Framework for Client- and Serverside-Javascript(nodeJS)
+  6. In near future, I will provide a version for NodeJS
   7. Ready to use your favorit support framework. i.e.: jQuery, bootstrap, Underscore,...
   8. Recursive HTML-View-System, able to display any structured javascript-data.
 
