@@ -119,16 +119,16 @@ Because that was working so well, we repeat that and add some pictures to our ga
 ```JS
 // step 6
 app.galleries=[
-  {
-    gName:"fh-stralsund",
-		images:[
-			{iName:"Library",       iPath:"static/Bibo.jpg"     },
-			{iName:"Haus 5",        iPath:"static/haus5.jpg"    },
-			{iName:"Mensa",         iPath:"static/mensa.jpg"    }
-		]
-  },
-  {
-    gName:"carweels",
+	{
+		gName:"fh-stralsund",
+			images:[
+				{iName:"Library",       iPath:"static/Bibo.jpg"     },
+				{iName:"Haus 5",        iPath:"static/haus5.jpg"    },
+				{iName:"Mensa",         iPath:"static/mensa.jpg"    }
+			]
+		},
+		{
+		gName:"carweels",
 		images:[
 			{iName:"Korean",      iPath:"static/koreaner.jpg" },
 			{iName:"Toyota",        iPath:"static/toyota.jpg"   },
@@ -137,7 +137,7 @@ app.galleries=[
 			{iName:"Kleinwagen",    iPath:"static/kleinwagen.jpg"},
 			{iName:"VW eins",       iPath:"static/VW01.jpg"     }
 		]
-  }
+	}
 ];
 ```
 To show all photos, we add a list-View into the list-View of step5, that displays the galleries add some css-classes and optional we load the style.css.
@@ -212,6 +212,63 @@ As you see, we simple added a JavaScript-function to the afterAdd propertie. You
 
 beforeAdd takes the element, before it is attached to the DOM. If you set an inital values or add event-listener there, you save to renter one frame. before- and afterUpdate are simple for animation. beforeUpdate takes an callback, to say, when its animation is over. beforeRemove, gets an Element, that has a copy of the original content, otherwise they would update to a different element. After remove can be used to cache the HTML-Element, to reuse it later.
 
+Step 8 introduces a feature, for optional displaying. The html-View-type "**htmlOption**" uses the filter to decide if the result should get displayed or not. the filter-method will have to return true or false. The element cares about the childs Path. So, if you set a path the child elements will be restricted to that data. For a demonstration, we want do display a mixed list of galleries and posts. Therefore we extend our data with a type and add an element with the post.
+```JS
+// step 8
+app.galleries=[
+	{	type:"gallery",
+		gName:"fh-stralsund",
+		images:[
+			{iName:"Library",    iPath:"static/Bibo.jpg"     },
+			{iName:"Haus 5",        iPath:"static/haus5.jpg"    },
+			{iName:"Mensa",         iPath:"static/mensa.jpg"    }
+		]
+	},
+	{	type:"post",
+		headline:"lorem ipsum",
+		text:"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
+	},
+	{	type:'gallery',
+		gName:"carweels",
+		images:[
+			{iName:"Korean",      iPath:"static/koreaner.jpg" },
+			{iName:"Toyota",        iPath:"static/toyota.jpg"   },
+			{iName:"Volvoreifen",   iPath:"static/Volvo.jpg"    },
+			{iName:"Skoda",         iPath:"static/Skoda.jpg"    },
+			{iName:"Kleinwagen",    iPath:"static/kleinwagen.jpg"},
+			{iName:"VW eins",       iPath:"static/VW01.jpg"     }
+		]
+	}
+];
+```
+The ListView will now look like that:
+```HTML
+<!-- step 8 -->
+<div tObserver="path:'app.galleries',type:'htmlList'" class="gallerieList">
+	<div tobserver="path:'',type:'htmlOption',filter:function(v){return (v.type=='gallery');}">
+		<div class="gallery">
+			<h2 tobserver="path:'gName'"></h2>
+			<div tObserver="path:'images',type:'htmlList',afterAdd:function(element){
+				element.style.width='0px';
+				$element=jQuery(element); 
+				$element.animate({width:'300px'},{duration :500,easing:'linear'});
+			}">
+				<div class="image">
+					<img tobserver="path:'iPath',type:'src'" />
+					<p tobserver="path:'iName'"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div tobserver="path:'',type:'htmlOption',filter:function(v){return (v.type=='post');}">
+		<div class="gallery">
+			<h2 tobserver="path:'headline'"></h2>
+			<p tobserver="path:'text'"></p>
+		</div>
+	</div>
+</div>
+```
+In the the outher list, now contains two htmlOption elements, which only get displayed if the type of the element is right. As you see, the filterMethod simple test the type-property. In more complex scenarios, it will be useful to analyse the element via *instanceof*. 
 ##Thanks + Inspiration
 This framework is developed by Tobias Nickel, a student at the university of applied science in Stralsund/Germany. During a internship at avandeo in Shanghai, a teammember told me to look at angular.js. While studying the documentation, I feld, that I do would not write an Javascript-Application, I would write a Angular-application. I thought, there is a lot of overhead to learn to use it properly and not being cut at my creativity. 
 

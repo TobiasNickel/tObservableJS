@@ -256,9 +256,6 @@
 	 * @returns {undefined}
 	 */
 	tobservable.prototype.initDomViews=function(){
-		//todo: change this loop to go through the tree recursive 
-		this.findTObserver();
-			
 		// liveupdate in the dom
 		window.bindEvent(document,'DOMNodeInserted',function(ev){
 			var element=ev.srcElement;
@@ -277,7 +274,8 @@
 					}
 				},1000)
 		})
-		//document.addEventListener('DOMNodeRemoved',);
+		this.findTObserver();
+			
 	};
 	tobservable.prototype.findTObserver=function(element){
 		if(element==undefined){ element=document.getElementsByTagName("html")[0];}
@@ -310,12 +308,15 @@
 			if(element._tName!=undefined)return;
 			attr=eval("({"+attr+"})");
 			attr.path=attr.path != undefined ? attr.path : "";
+			attr.path=attr.path[attr.path.length-1]=='.'?
+				attr.path.slice(0,attr.path.length-1):attr.path;
+			attr.path=attr.path==''?'window':attr.path;
 			
 			this.element=element;
 			
 			
 			
-			if(attr.type=="htmlList"){
+			if(attr.type=="htmlList"||attr.type=="htmlOption"){
 				attr.defaultValue=element.innerHTML;
 				attr.preview=this.element.innerHTML;
 				this.element.innerHTML="";
@@ -344,8 +345,7 @@
 		StdElementView.prototype.update=function(){
 			var v=tobserver.get(this.attr.path).data;
 			v= typeof v === "number"?v+"":v;
-			if(!Array.isArray(v))
-				v= typeof v==="string"?v:this.attr.defaultValue;
+			v= v!==undefined?v:this.attr.defaultValue;
 			var orgData=v;
 			if(this.attr.filter!=undefined)
 				v=this.attr.filter(v);
@@ -357,13 +357,31 @@
 					}
 				break;
 				case 'htmlList':this.updateList(v,orgData); break;
+				case 'htmlOption':this.updateOption(v,orgData); break;
 				default: this.element.setAttribute(this.attr.type,v);
 			}
 		};
+		StdElementView.prototype.updateOption=function updateList(data,orgData){
+			if(data==false){
+				this.element.innerHTML="";
+				this.element.display="none";
+			}else{
+				this.element.display="";
+				if(this.element.innerHTML==""){
+					var newElement=document.createElement("div");
+					newElement.innerHTML=this.attr.preview;
+					this.findAndUpdatePath(newElement,this.attr.path);
+					while( newElement.children[0]!=null)
+							this.element.appendChild(newElement.children[0]);
+				}
+			}
+		};
+		
 		/**
 		 *	the speaciel bevavior of the htmlList-Views
 		 */
 		StdElementView.prototype.updateList=function updateList(data,orgData){
+						
 			var kids=this.element.children;
 			var displayedData=[];
 			var displayedElements=[];
@@ -420,7 +438,6 @@
 			}
 			
 			kids=this.element.children;
-						
 		};
 		/**
 		 *	if the Path for the a List-Item has changed, this function will update the childs
@@ -480,7 +497,6 @@
 				afterRemove:emptyFunction,
 				beforeUpdate:callSecoundF,
 				afterUpdate:emptyFunction
-				
 			}
 		}()
 	};
