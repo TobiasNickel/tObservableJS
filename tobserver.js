@@ -107,25 +107,6 @@
 	tobservable.prototype.addNameToPath=function (path, name) {
 		return path===''?name:path+'.'+name;
 	}
-
-	/**
-	 * remove the described observer
-	 * @param {type} path
-	 *      tha data-path to the observer, where the last part is the name
-	 * @returns {void}
-	 */
-	tobservable.prototype.removeObserver = function(path) {
-		this.observer.removeListener(path);
-	};
-
-	/**
-	 * used to tell all observer on the given path to update there view
-	 * @param {type} path
-	 * @returns {undefined}
-	 */
-	tobservable.prototype.notify = function(path) {
-		this.observer.runUpdate(this.addNameToPath(this.path, path));
-	};
 	
 	/**
 	 * used to register a opserver on the described path
@@ -136,10 +117,31 @@
 	 *      describes the path wherer the observer should be registered
 	 * @returns {void}
 	 */
-	tobservable.prototype.registerObserver = function(tObserver, pPath) {
+	tobservable.prototype.on = function(pPath,tObserver) {
+		if(tObserver==undefined)return;
+		tObserver=typeof tObserver == 'function' ? {update:tObserver}:tObserver
 		this.observer.addListener(tObserver, pPath);
 	};
 	
+	/**
+	 * remove the described observer
+	 * @param {type} path
+	 *      tha data-path to the observer, where the last part is the name
+	 * @returns {void}
+	 */
+	tobservable.prototype.off = function(path,tObserver) {
+		this.observer.removeListener(path,tObserver);
+	};
+
+	/**
+	 * used to tell all observer on the given path to update there view
+	 * @param {type} path
+	 * @returns {undefined}
+	 */
+	tobservable.prototype.notify = function(path) {
+		this.observer.runUpdate(this.addNameToPath(this.path, path));
+	};
+
 	
 	/**
 	 * @class
@@ -183,24 +185,32 @@
 		 * one of the magic functions. it is executing the updatefuntion of all 
 		 * relevant listeners. so, all listener that are registered along the path,
 		 * and all Listeners under the Path.
-		 * @param {type} pPath
+		 * @param {string} pPath
+		 * @param {int} roundNumber, used, not to repeat updating the same observer. (optional)
 		 * @returns {undefined}
 		 */
-		observerTree.prototype.runUpdate = function(pPath) {
+		observerTree.prototype.runUpdate = function(pPath,roundNumber) {
+			if(roundNumber==undefined)roundNumber=Math.random()*10000000000000000;
 			if (typeof(pPath) === "undefined")
 				pPath = '';
-			for (var ii in this.$listener) 
-				this.$listener[ii].update();
+			//update the listener on the current node
+			for (var ii in this.$listener){
+				if(this.$listener[ii].tNotificationRoundNumber!=roundNumber){
+					this.$listener[ii].tNotificationRoundNumber=roundNumber;
+					this.$listener[ii].update();
+				}
+			}
+			//go through the path
 			var pathParts = this.removeEmptyStrings(pPath.split('.'));
 			if (pathParts.length > 0) {
 				var PropName = this.toProertyname(pathParts[0]);
 				if (typeof(this[PropName]) !== 'undefined') {
 					pathParts.splice(0, 1);//TODO
-					this[PropName].runUpdate( mergeToPath(pathParts));
+					this[PropName].runUpdate( mergeToPath(pathParts),roundNumber);
 				}
 			}else
 				for(var index in this) if(index.indexOf('_t_')===0)
-					this[index].runUpdate("");
+					this[index].runUpdate("",roundNumber);
 		};
 		
 		/**
@@ -209,21 +219,30 @@
 		 *      the path to the lsitener, where the last part is the name
 		 * @returns {void}
 		 */
-		observerTree.prototype.removeListener = function(pPath) {
+		observerTree.prototype.removeListener = function(pPath,tObserver) {
 			if (typeof(pPath) === "undefined") 
 				pPath = '';
 			var pathParts = pPath.split('.');
 			pathParts = this.removeEmptyStrings(pathParts);
-			if (pathParts.length > 1) {
+			if (pathParts.length > 1||(tObserver!=undefined && pathParts.length > 0)) {
 				var PropName = this.toProertyname(pathParts[0]);
 				pathParts.shift();
 				if (typeof(this[PropName]) !== 'undefined')
-					this[PropName].removeListener( mergeToPath(pathParts));
+					this[PropName].removeListener( mergeToPath(pathParts),tObserver);
 			} else 
-				if (pathParts.length === 1 && typeof(this[pathParts[0]]) !== 'undefined') 
+				if (pathParts.length === 1 && this[pathParts[0]] != undefined) {
 					for (var ii in this.$listener) 
 						if (typeof this.$listener[ii].name === 'string' && this.$listener[ii].name === PropName) 
-							this.$listener.splice(this.$listener[ii], 1);
+							this.$listener.splice(ii, 1);
+				}else{
+					if(tObserver!=undefined){
+						for (var ii=0;ii<this.$listener.length;ii++) {
+							if (this.$listener[ii]===tObserver || this.$listener[ii].update === tObserver) {
+								this.$listener.splice(ii, 1);
+							}
+						}
+					}
+				}
 		};
 		//remove all "" strings
 		observerTree.prototype.removeEmptyStrings=function(array) {
@@ -270,12 +289,11 @@
 					if(attr!=undefined && element._tName!=undefined){
 						var tPath=attr.path;
 						tPath=tPath!=undefined?tPath:"";
-						tobserver.removeObserver(tPath+"."+element._tName);
+						tobserver.offoff(tPath+"."+element._tName);
 					}
 				},1000)
 		})
 		this.findTObserver();
-			
 	};
 	tobservable.prototype.findTObserver=function(element){
 		if(element==undefined){ element=document.getElementsByTagName("html")[0];}
@@ -286,8 +304,6 @@
 				tobserver.findTObserver(kids[s])
 		else 
 			new tobserver.StdElementView(element,this);
-		
-				
 	}; 
 	
 	/**
@@ -314,8 +330,6 @@
 			
 			this.element=element;
 			
-			
-			
 			if(attr.type=="htmlList"||attr.type=="htmlOption"){
 				attr.defaultValue=element.innerHTML;
 				attr.preview=this.element.innerHTML;
@@ -336,7 +350,7 @@
 			this.element._tObserver=this;
 			this.element.attr=attr;
 			this.attr=attr;
-			tobserver.registerObserver(this,attr.path);
+			tobserver.on(attr.path,this);
 			this.update();
 		}
 		/**
@@ -466,8 +480,8 @@
 					if(kids[i].attr.type=='htmlList'){
 						this.updateRootPath(kids[i],realOrgPath+"."+realOrgPath,oldRootPath+"."+realOrgPath)
 					}
-					tobserver.removeObserver(kids[i].attr.path+"."+kids[i]._tName);
-					tobserver.registerObserver(kids[i]._tObserver,newRootPath+'.'+realOrgPath);
+					tobserver.off(kids[i].attr.path+"."+kids[i]._tName);
+					tobserver.on(newRootPath+'.'+realOrgPath,kids[i]._tObserver);
 					kids[i].attr.path=newRootPath+'.'+realOrgPath;
 				}else{
 					this.updateRootPath(kids[i],newRootPath,oldRootPath)
@@ -479,8 +493,7 @@
 		 */
 		StdElementView.prototype.setRoot=function setRoot(element,root){
 			var attr=element.getAttribute("tObserver");
-			attr=attr.replace("path:'","path:'"+root+".");
-			attr=attr.replace('path:"','path:"'+root+'.');
+			attr=attr.replace("path:","path:'"+root+".'+");
 			element.setAttribute("tObserver",attr);
 		};
 		return StdElementView;
