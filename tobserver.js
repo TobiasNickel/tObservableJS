@@ -189,17 +189,16 @@
 		 * @param {int} roundNumber, used, not to repeat updating the same observer. (optional)
 		 * @returns {undefined}
 		 */
-		observerTree.prototype.runUpdate = function(pPath,roundNumber) {
+		observerTree.prototype.runUpdate = function runUpdate(pPath,roundNumber) {
 			if(roundNumber==undefined)roundNumber=Math.random()*10000000000000000;
 			if (typeof(pPath) === "undefined")
 				pPath = '';
 			//update the listener on the current node
-			for (var ii in this.$listener){
+			for (var ii in this.$listener)
 				if(this.$listener[ii].tNotificationRoundNumber!=roundNumber){
 					this.$listener[ii].tNotificationRoundNumber=roundNumber;
 					this.$listener[ii].update();
 				}
-			}
 			//go through the path
 			var pathParts = this.removeEmptyStrings(pPath.split('.'));
 			if (pathParts.length > 0) {
@@ -219,7 +218,7 @@
 		 *      the path to the lsitener, where the last part is the name
 		 * @returns {void}
 		 */
-		observerTree.prototype.removeListener = function(pPath,tObserver) {
+		observerTree.prototype.removeListener = function removeListener(pPath,tObserver) {
 			if (typeof(pPath) === "undefined") 
 				pPath = '';
 			var pathParts = pPath.split('.');
@@ -234,30 +233,27 @@
 					for (var ii in this.$listener) 
 						if (typeof this.$listener[ii].name === 'string' && this.$listener[ii].name === PropName) 
 							this.$listener.splice(ii, 1);
-				}else{
-					if(tObserver!=undefined){
-						for (var ii=0;ii<this.$listener.length;ii++) {
-							if (this.$listener[ii]===tObserver || this.$listener[ii].update === tObserver) {
+				}else
+					if(tObserver!=undefined)
+						for (var ii=0;ii<this.$listener.length;ii++) 
+							if (this.$listener[ii]===tObserver || this.$listener[ii].update === tObserver) 
 								this.$listener.splice(ii, 1);
-							}
-						}
-					}
-				}
+				
 		};
 		//remove all "" strings
-		observerTree.prototype.removeEmptyStrings=function(array) {
+		observerTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
 			while (array.indexOf('') !== -1) 
 				array.splice(array.indexOf(''), 1);
 			return array;
 		}
 		//remove all "" strings
-		observerTree.prototype.removeEmptyStrings=function(array) {
+		observerTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
 			while (array.indexOf('') !== -1) 
 				array.splice(array.indexOf(''), 1);
 			return array;
 		}
 		
-		observerTree.prototype.toProertyname=function(name) {
+		observerTree.prototype.toProertyname=function toProertyname(name) {
 			return '_t_' + name;
 		}
 		return observerTree;
@@ -559,7 +555,7 @@ function bindEvent(el, eventName, eventHandler) {
 // ...
 bindEvent(window, 'load', function(){
 	var style=document.createElement("style");
-	style.innerHTML="tobserverlistitem{display:inline-block;margin:0px;padding:0px;}";
+	style.innerHTML="tobserverlistitem{display:inline-flex;margin:0px;padding:0px;margin-top: -5px;}";
 	document.getElementsByTagName("head")[0].appendChild(style);
 	tobserver.initDomViews();
 });
