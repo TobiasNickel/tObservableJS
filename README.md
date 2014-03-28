@@ -8,7 +8,7 @@ tObservableJS will make programming much more enjoyable.
   3. Getting the comfort as you might love in MVC-frameworks
   4. 100% debug-friendly
   5. Writing less code to manipulate the DOM
-  6. In near future, I will provide a version for NodeJS
+  6. nodeJS available
   7. Ready to use your favorit support framework. i.e.: jQuery, bootstrap, Underscore,...
   8. Recursive HTML-View-System, able to display any structured javascript-data.
 
@@ -59,6 +59,9 @@ observer= new function(){
 In that way, you manage by yourselve, what kind of observer you program. One for everything, seperate for UI and communication or use them to store, restore information to local storage or implementing your businesslogic. 
 
 With this thinks in your hand, you should be able to structure your Web-Appliacation. The first Web-Apps, that have been using tObservableJS, only has used the basic tobserver and impletmenten all UI Views by itself.
+
+### on Node
+On node you can't need the HTML-Views so all the stuff is removed. using var tobserver = require('nodeTobserver.js'); you get the tobserver as it is on the browser. It has a Property .data, that is an empty object. It is the root-Object, but can be changed. 
 
 ### HTML Views
 But tObservableJS framework, provides a smarter way, to write HTML-themplates that will get compiled automaticly by using the data they belong too. When the data get updated through the tobserver, the views will also keeped up to date. I will describe the view-System on a simple example, with a Page, that is displaying a list of image-Galleries. The steps from this documentation are available as files unter "/tutorial". We create an .html-file, write some put all our app-Data to a new object, within a script-tag in the head.
