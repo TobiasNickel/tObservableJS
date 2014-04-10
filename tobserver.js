@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @bersion 0.03
+ * @version 0.04
  */
 
 /**
@@ -15,7 +15,7 @@
 	 function tobservable(pData, pObserverTree, pPath) {
 		"use strict";
 		if (!pData) 
-			pData = {};
+			pData = undefined;
 		if (!pObserverTree) 
 			pObserverTree = new this.observerTree();
 		if (!pPath) 
@@ -280,12 +280,12 @@
 		window.bindEvent(document,'DOMNodeRemoved',function(ev){
 			if(ev.srcElement!=undefined&& ev.srcElement.getAttribute!=undefined)
 				setTimeout(function(){
-					var element=ev.srcElement;
-					var attr=element.getAttribute("tObserver");
-					if(attr!=undefined && element._tName!=undefined){
+					//var element=ev.srcElement;
+					var attr=ev.srcElement.getAttribute("tObserver");
+					if(attr!=undefined && ev.srcElement._tName!=undefined){
 						var tPath=attr.path;
 						tPath=tPath!=undefined?tPath:"";
-						tobserver.offoff(tPath+"."+element._tName);
+						tobserver.off(tPath+"."+ev.srcElement._tName);
 					}
 				},1000)
 		})
@@ -355,10 +355,10 @@
 		StdElementView.prototype.update=function(){
 			var v=tobserver.get(this.attr.path).data;
 			v= typeof v === "number"?v+"":v;
-			v= v!==undefined?v:this.attr.defaultValue;
 			var orgData=v;
 			if(this.attr.filter!=undefined)
 				v=this.attr.filter(v);
+			v= v!==undefined?v:this.attr.defaultValue;
 			switch(this.attr.type){
 				case undefined:
 					if(this.element.innerHTML!=v){
@@ -382,7 +382,7 @@
 					newElement.innerHTML=this.attr.preview;
 					this.findAndUpdatePath(newElement,this.attr.path);
 					while( newElement.children[0]!=null)
-							this.element.appendChild(newElement.children[0]);
+						this.element.appendChild(newElement.children[0]);
 				}
 			}
 		};
@@ -396,24 +396,23 @@
 			var displayedData=[];
 			var displayedElements=[];
 			//remove deleted Elements and saving the position on the kids
-			for(var i=0;i<kids.length;i++){
+			while(kids[0]!=undefined){
 				
-				var newPosition=data.indexOf(kids[i].item)
+				var newPosition=data.indexOf(kids[0].item);
 				
 				if(newPosition==-1){
-					kids[i].innerHTML=kids[i].innerHTML.replace("tobserver","removedtObserver").trim();;
-					this.attr.beforeRemove(kids[i],function(e){
+					kids[0].innerHTML=kids[0].innerHTML.replace("tobserver","removedtObserver").trim();
+					this.attr.beforeRemove(kids[0],function(e){
 						if(e!=undefined)e.remove();
-					})
+					});
 				}else{
-					displayedData.push(kids[i].item);
-					if(kids[i].tagName=="TOBSERVERLISTITEM"){
-						if(newPosition!=kids[i].position){
-							this.updateRootPath(kids[i],this.attr.path+"."+newPosition,this.attr.path+"."+kids[i].position);
+					displayedData.push(kids[0].item);
+					if(kids[0].tagName=="TOBSERVERLISTITEM"){
+						if(newPosition!=kids[0].position){
+							this.updateRootPath(kids[0],this.attr.path+"."+newPosition,this.attr.path+"."+kids[0].position);
 						}
-						kids[i].position=newPosition;
-						displayedElements.push(kids[i]);
-					
+						kids[0].position=newPosition;
+						displayedElements.push(kids[0]);
 					}
 				}
 			}
@@ -498,7 +497,7 @@
 	tobservable.prototype.utils={
 		stdViewBehavior:function(){
 			var emptyFunction=function(){},
-				callSecoundF=function(_,f){f()};
+				callSecoundF=function(x,f){f(x)};
 			return{
 				beforeAdd:emptyFunction,
 				afterAdd:emptyFunction,
