@@ -25,7 +25,6 @@
 		this.data = pData; // the ProgrammData
 		this.observer = pObserverTree;
 		this.path = pPath;
-
 	}
 	/**
 	 * will return a tObservable, that observes the given path
@@ -42,7 +41,7 @@
 			var name = pathParts[0];
 			if (pathParts.length === 1) {
 				return new tobservable(
-					this.data[name],
+					this.data==undefined ? undefined : this.data[name],
 					this.observer,
 					this.addNameToPath(this.path, name)
 				);
@@ -138,8 +137,9 @@
 	 * @param {type} path
 	 * @returns {undefined}
 	 */
-	tobservable.prototype.notify = function(path) {
-		this.observer.runUpdate(this.addNameToPath(this.path, path));
+	tobservable.prototype.notify = function(path,round) {
+		if(round==undefined)round=new Date().getTime()+""+Math.random();
+		this.observer.runUpdate(this.addNameToPath(this.path, path),round);
 	};
 
 	
@@ -186,18 +186,18 @@
 		 * relevant listeners. so, all listener that are registered along the path,
 		 * and all Listeners under the Path.
 		 * @param {string} pPath
-		 * @param {int} roundNumber, used, not to repeat updating the same observer. (optional)
+		 * @param {int} round, used, not to repeat updating the same observer. (optional)
 		 * @returns {undefined}
 		 */
-		observerTree.prototype.runUpdate = function runUpdate(pPath,roundNumber) {
-			if(roundNumber==undefined)roundNumber=Math.random()*10000000000000000;
+		observerTree.prototype.runUpdate = function runUpdate(pPath,round) {
+			if(round==undefined)round=new Date().getTime()+""+Math.random();
 			if (typeof(pPath) === "undefined")
 				pPath = '';
 			//update the listener on the current node
 			for (var ii in this.$listener)
-				if(this.$listener[ii].tNotificationRoundNumber!=roundNumber){
-					this.$listener[ii].tNotificationRoundNumber=roundNumber;
-					this.$listener[ii].update();
+				if(this.$listener[ii].tNotificationRoundNumber!=round){
+					this.$listener[ii].tNotificationRoundNumber=round;
+					this.$listener[ii].update(round);
 				}
 			//go through the path
 			var pathParts = this.removeEmptyStrings(pPath.split('.'));
@@ -205,11 +205,11 @@
 				var PropName = this.toProertyname(pathParts[0]);
 				if (typeof(this[PropName]) !== 'undefined') {
 					pathParts.splice(0, 1);//TODO
-					this[PropName].runUpdate( mergeToPath(pathParts),roundNumber);
+					this[PropName].runUpdate( mergeToPath(pathParts),round);
 				}
 			}else
 				for(var index in this) if(index.indexOf('_t_')===0)
-					this[index].runUpdate("",roundNumber);
+					this[index].runUpdate("",round);
 		};
 		
 		/**
@@ -320,6 +320,7 @@
 			if(element._tName!=undefined)return;
 			attr=eval("({"+attr+"})");
 			attr.path=attr.path != undefined ? attr.path : "";
+			attr.outer=attr.outer != undefined ? attr.outer : "div";
 			attr.path=attr.path[attr.path.length-1]=='.'?
 				attr.path.slice(0,attr.path.length-1):attr.path;
 			attr.path=attr.path==''?'window':attr.path;
@@ -339,7 +340,7 @@
 			attr.afterRemove	=attr.afterRemove!=undefined	?attr.afterRemove	:tobserver.utils.stdViewBehavior.afterRemove;
 			attr.beforeUpdate	=attr.beforeUpdate!=undefined	?attr.beforeUpdate	:tobserver.utils.stdViewBehavior.beforeUpdate;
 			attr.afterUpdate	=attr.afterUpdate!=undefined	?attr.afterUpdate	:tobserver.utils.stdViewBehavior.afterUpdate;
-		
+			
 			var name="tObserverName"+Math.random()*10000000000000000;
 			this.name=name;
 			this.element._tName=name;
@@ -397,9 +398,7 @@
 			var displayedElements=[];
 			//remove deleted Elements and saving the position on the kids
 			while(kids[0]!=undefined){
-				
 				var newPosition=data.indexOf(kids[0].item);
-				
 				if(newPosition==-1){
 					kids[0].innerHTML=kids[0].innerHTML.replace("tobserver","removedtObserver").trim();
 					this.attr.beforeRemove(kids[0],function(e){
@@ -430,7 +429,8 @@
 				else{
 					//create new insertBefore
 					var orgIndex=orgData.indexOf(data[i]);
-					var kid=document.createElement("tObserverListItem");
+					var kid=document.createElement(this.attr.outer);
+					kid.setAttribute("class","tobserverlistitem");
 					
 					kid.innerHTML=this.attr.preview;
 					this.findAndUpdatePath(kid,this.attr.path+"."+orgIndex);
@@ -441,8 +441,8 @@
 					else this.element.appendChild(kid);
 					
 					tobserver.findTObserver(kid);
-					this.attr.beforeAdd(kid);
-					this.attr.afterAdd(kid);
+					this.attr.beforeAdd(kid,data[i]);
+					this.attr.afterAdd(kid,data[i]);
 				}	
 			}
 			
@@ -497,7 +497,7 @@
 	tobservable.prototype.utils={
 		stdViewBehavior:function(){
 			var emptyFunction=function(){},
-				callSecoundF=function(x,f){f(x)};
+				callSecoundF=function(e,f){f(e)};
 			return{
 				beforeAdd:emptyFunction,
 				afterAdd:emptyFunction,
@@ -506,7 +506,12 @@
 				beforeUpdate:callSecoundF,
 				afterUpdate:emptyFunction
 			}
-		}()
+		}(),
+		linkView:function(linkPath){
+			this.update=function updateLinkView(round){
+				tobserver.notify(linkPath,round);
+			}
+		}
 	};
 	
 	return tobservable;
@@ -554,7 +559,7 @@ function bindEvent(el, eventName, eventHandler) {
 // ...
 bindEvent(window, 'load', function(){
 	var style=document.createElement("style");
-	style.innerHTML="tobserverlistitem{display:inline-flex;margin:0px;padding:0px;margin-top: -5px;}";
+	style.innerHTML=".tobserverlistitem{margin:0px;	padding:0px;}";
 	document.getElementsByTagName("head")[0].appendChild(style);
 	tobserver.initDomViews();
 });
