@@ -193,14 +193,15 @@
 			if(round==undefined)round=new Date().getTime()+""+Math.random();
 			if (typeof(pPath) === "undefined")
 				pPath = '';
+			var pathParts = this.removeEmptyStrings(pPath.split('.'));
 			//update the listener on the current node
 			for (var ii in this.$listener)
 				if(this.$listener[ii].tNotificationRoundNumber!=round){
 					this.$listener[ii].tNotificationRoundNumber=round;
-					this.$listener[ii].update(round);
+					this.$listener[ii].update(round,pathParts);
 				}
 			//go through the path
-			var pathParts = this.removeEmptyStrings(pPath.split('.'));
+			
 			if (pathParts.length > 0) {
 				var PropName = this.toProertyname(pathParts[0]);
 				if (typeof(this[PropName]) !== 'undefined') {
@@ -507,9 +508,36 @@
 				afterUpdate:emptyFunction
 			}
 		}(),
-		linkView:function(linkPath){
+		linkViews:function(sourcePath,destPath){
+			tobserver.on(sourcePath	,new this.LinkView(destPath));
+			tobserver.on(destPath	,new this.LinkView(sourcePath));
+			
+		},
+		linkToArrayViews:function(elementPath,arrayPath){
+			tobserver.on(elementPath,new this.LinkToArrayView(elementPath,arrayPath));
+			tobserver.on(arrayPath,new this.LinkFromArrayView(elementPath,arrayPath));
+		},
+		LinkView:function LinkView(destPath){
 			this.update=function updateLinkView(round){
-				tobserver.notify(linkPath,round);
+				tobserver.notify(destPath,round);
+			}
+		},
+		LinkToArrayView:function LinkToArrayView(elementPath,arrayPath){
+			this.update=function updateLinkView(round){
+				var sourceData=tobserver.get(elementPath).data;
+				var array=tobserver.get(arrayPath).data;
+				tobserver.notify(arrayPath+"."+array.indexOf(sourceData ),round);
+			}
+		},
+		LinkFromArrayView:function LinkFromArrayView(elementPath,arrayPath){
+			this.update=function updateLinkView(round,pathParts){
+				var sourceData=tobserver.get(elementPath).data;
+				var array=tobserver.get(arrayPath).data;
+				if(pathParts[0]!=undefined){
+					if(array[pathParts[0]]!==sourceData){
+						tobserver.notify(elementPath,round);
+					}
+				}else tobserver.notify(elementPath,round);
 			}
 		}
 	};
