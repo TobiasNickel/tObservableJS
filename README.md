@@ -63,6 +63,18 @@ With this thinks in your hand, you should be able to structure your Web-Appliaca
 ### on Node
 On node you can't need the HTML-Views so all the stuff is removed. using var tobserver = require('nodeTobserver.js'); you get the tobserver as it is on the browser. It has a Property .data, that is an empty object. It is the root-Object, but can be changed. 
 
+### utils
+Under tobserver.utils.* you will find some helpful stuf. Here is a list of the things, that are interesting to use for your Application. The behavior of tobservable.js is that it basicly only handles hierarchic data on the model. But if you want to store some data on multiple points in the tree and update the objects we also want to have the other modules updated. For that, there are 3 view-classes given:
+
+* **new LinkView (path)** Creates a view, that is updating the given path. can be used for a single object that is stored on multiple points.
+* **new LinkToArrayView(elementPath,arrayPath)** on updating the object, given by the elementPath, the Array under arrayPath will be updated, so that only the array only the element from the elementPath is updated, not every single element in the array.
+* **LinkFromArrayView(elementPath,arrayPath)** updates the views for the ElementPath when there are changes in the Array, it also only updates the element, when the particular element on the array was manipulated. 
+
+Usualy you will need to register two views to have bidirectional updates. To make that more comfortable there are two methods given in the utilis.
+* **new linkViews(sourcePath,destPath)** creates two LinkViews for bidirectional updates.
+* **new linkToArrayViews(elementPath,arrayPath)** creates a LinkToArrayView and a LinkFromArrayView for bidirectional updates, between an Object and an Array.
+
+
 ### HTML Views
 But tObservableJS framework, provides a smarter way, to write HTML-themplates that will get compiled automaticly by using the data they belong too. When the data get updated through the tobserver, the views will also keeped up to date. I will describe the view-System on a simple example, with a Page, that is displaying a list of image-Galleries. The steps from this documentation are available as files unter "/tutorial". We create an .html-file, write some put all our app-Data to a new object, within a script-tag in the head.
 ```HTML
