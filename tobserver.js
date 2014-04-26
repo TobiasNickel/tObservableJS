@@ -370,7 +370,14 @@
 				break;
 				case 'htmlList':this.updateList(v,orgData); break;
 				case 'htmlOption':this.updateOption(v,orgData); break;
-				default: this.element.setAttribute(this.attr.type,v);
+				case 'value':
+					if(this.element.value=v)
+						return;
+					this.element.value=v;
+				default: 
+					if(this.element.getAttribute(this.attr.type)==v)
+						return;
+					this.element.setAttribute(this.attr.type,v);
 			}
 		};
 		StdElementView.prototype.updateOption=function updateList(data,orgData){
@@ -398,21 +405,24 @@
 			var displayedData=[];
 			var displayedElements=[];
 			//remove deleted Elements and saving the position on the kids
-			while(kids[0]!=undefined){
-				var newPosition=data.indexOf(kids[0].item);
+			for(var i =0;i<kids.length;i++){
+				var newPosition=data.indexOf(kids[i].item);
 				if(newPosition==-1){
-					kids[0].innerHTML=kids[0].innerHTML.replace("tobserver","removedtObserver").trim();
-					this.attr.beforeRemove(kids[0],function(e){
-						if(e!=undefined)e.remove();
+					kids[i].innerHTML=kids[i].innerHTML.replace("tobserver","removedtObserver").trim();
+					this.attr.beforeRemove(kids[i],function(e){
+						if(e!=undefined){
+							e.remove();
+							i--;
+						}
 					});
 				}else{
-					displayedData.push(kids[0].item);
-					if(kids[0].tagName=="TOBSERVERLISTITEM"){
-						if(newPosition!=kids[0].position){
-							this.updateRootPath(kids[0],this.attr.path+"."+newPosition,this.attr.path+"."+kids[0].position);
+					displayedData.push(kids[i].item);
+					if(kids[i].className=="tobserverlistitem"){
+						if(newPosition!=kids[i].position){
+							this.updateRootPath(kids[i],this.attr.path+"."+newPosition,this.attr.path+"."+kids[i].position);
 						}
-						kids[0].position=newPosition;
-						displayedElements.push(kids[0]);
+						kids[i].position=newPosition;
+						displayedElements.push(kids[i]);
 					}
 				}
 			}
@@ -428,22 +438,24 @@
 				if(displayedElements[listIndex]!=undefined&&data[i]==displayedElements[listIndex].item)
 					listIndex++;
 				else{
-					//create new insertBefore
-					var orgIndex=orgData.indexOf(data[i]);
-					var kid=document.createElement(this.attr.outer);
-					kid.setAttribute("class","tobserverlistitem");
-					
-					kid.innerHTML=this.attr.preview;
-					this.findAndUpdatePath(kid,this.attr.path+"."+orgIndex);
-					kid.position=i;
-					kid.item=data[i];
-					if(displayedElements[listIndex]!=undefined)
-						displayedElements[listIndex].parentNode.insertBefore(kid, displayedElements[listIndex] );
-					else this.element.appendChild(kid);
-					
-					tobserver.findTObserver(kid);
-					this.attr.beforeAdd(kid,data[i]);
-					this.attr.afterAdd(kid,data[i]);
+					if(displayedData.indexOf(data[i])==-1){
+						//create new insertBefore
+						var orgIndex=orgData.indexOf(data[i]);
+						var kid=document.createElement(this.attr.outer);
+						kid.setAttribute("class","tobserverlistitem");
+						
+						kid.innerHTML=this.attr.preview;
+						this.findAndUpdatePath(kid,this.attr.path+"."+orgIndex);
+						kid.position=i;
+						kid.item=data[i];
+						if(displayedElements[listIndex]!=undefined)
+							displayedElements[listIndex].parentNode.insertBefore(kid, displayedElements[listIndex] );
+						else this.element.appendChild(kid);
+						
+						tobserver.findTObserver(kid);
+						this.attr.beforeAdd(kid,data[i]);
+						this.attr.afterAdd(kid,data[i]);
+					}
 				}	
 			}
 			
