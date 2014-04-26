@@ -568,7 +568,6 @@ function hasClass( elem, klass ) {
      return (" " + elem.className + " " ).indexOf( " "+klass+" " ) > -1;
 }
 
-
 /**
  * merges a array of names to a path
  * @private
