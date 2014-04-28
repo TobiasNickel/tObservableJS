@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.1
+ * @version 0.2
  */
 
 /**
@@ -11,7 +11,7 @@
  * @param {tobservable} pObserverTree the root observertree (used internally)
  * @param {String} pPath the path of the data that is the current observer is careing about
  */
- var tobserver=( function(){
+ var tobserver=( function(window,document,undefined){
 	 function tobservable(pData, pObserverTree, pPath) {
 		"use strict";
 		if (!pData) 
@@ -390,8 +390,11 @@
 					var newElement=document.createElement("div");
 					newElement.innerHTML=this.attr.preview;
 					this.findAndUpdatePath(newElement,this.attr.path);
-					while( newElement.children[0]!=null)
+					while( newElement.children[0]!=null){
+						this.attr.beforeAdd(newElement.children[0],orgData);
 						this.element.appendChild(newElement.children[0]);
+						this.attr.afterAdd(newElement.children[0],orgData);
+					}
 				}
 			}
 		};
@@ -912,7 +915,7 @@
 	}
 
 	return new tobservable(window);
-})();
+})(window,document);
 
 tobserver.utils.bindEvent(window, 'load', function(){
 	var style=document.createElement("style");
