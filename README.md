@@ -11,6 +11,7 @@ tObservableJS will make programming much more enjoyable.
   6. nodeJS available
   7. Ready to use your favorit support framework. i.e.: jQuery, bootstrap, Underscore,...
   8. Recursive HTML-View-System, able to display any structured javascript-data.
+  9. let you focus your application, not just a frameworks-app
 
 ## Description
 
@@ -74,6 +75,10 @@ Usualy you will need to register two views to have bidirectional updates. To mak
 * **new linkViews(sourcePath,destPath)** creates two LinkViews for bidirectional updates.
 * **new linkToArrayViews(elementPath,arrayPath)** creates a LinkToArrayView and a LinkFromArrayView for bidirectional updates, between an Object and an Array.
 
+## history modul
+There is taken a good part from Backbone and reworked it to support the work with TobservableJS. Under tobserver.utils.history the new modul. It has a start method to follow changes on the URL. So, write a link to your side, the page will not reload, but the tobservable-path givenoptions for the start will be updated by the tobserver. The default is just **"url"**, so register a view, to this path, and you can reload some parts of your page. The modul supports the functions of the browser to navigate back. Because the user now can share the new link on the address-line in the browser, you should make sure that your server can deliver the same content as your JS-View. 
+
+This Modul was designed to create the behavior as you can find on http://usatoday.com/
 
 ### HTML Views
 But tObservableJS framework, provides a smarter way, to write HTML-themplates that will get compiled automaticly by using the data they belong too. When the data get updated through the tobserver, the views will also keeped up to date. I will describe the view-System on a simple example, with a Page, that is displaying a list of image-Galleries. The steps from this documentation are available as files unter "/tutorial". We create an .html-file, write some put all our app-Data to a new object, within a script-tag in the head.
