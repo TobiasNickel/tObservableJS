@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.04
+ * @version 0.1
  */
 
 /**
@@ -71,7 +71,7 @@
 		if (pathParts.length === 1) {
 			if (run) {
 				var out = this.data[name].apply(this.data, value);
-				this.notify(name);
+				this.notify();
 				return this;
 			} else {
 				this.data[name] = value;

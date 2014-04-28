@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @bersion 0.03
+ * @bersion 0.1
  */
 
 /**
@@ -11,11 +11,11 @@
  * @param {tobservable} pObserverTree the root observertree (used internally)
  * @param {String} pPath the path of the data that is the current observer is careing about
  */
- var tobservable=( function(){
+export =( function(){
 	 function tobservable(pData, pObserverTree, pPath) {
 		"use strict";
 		if (!pData) 
-			pData = {};
+			pData = undefined;
 		if (!pObserverTree) 
 			pObserverTree = new this.observerTree();
 		if (!pPath) 
@@ -25,7 +25,6 @@
 		this.data = pData; // the ProgrammData
 		this.observer = pObserverTree;
 		this.path = pPath;
-
 	}
 	/**
 	 * will return a tObservable, that observes the given path
@@ -42,7 +41,7 @@
 			var name = pathParts[0];
 			if (pathParts.length === 1) {
 				return new tobservable(
-					this.data[name],
+					this.data==undefined ? undefined : this.data[name],
 					this.observer,
 					this.addNameToPath(this.path, name)
 				);
@@ -72,7 +71,7 @@
 		if (pathParts.length === 1) {
 			if (run) {
 				var out = this.data[name].apply(this.data, value);
-				this.notify(name);
+				this.notify();
 				return this;
 			} else {
 				this.data[name] = value;
@@ -138,8 +137,9 @@
 	 * @param {type} path
 	 * @returns {undefined}
 	 */
-	tobservable.prototype.notify = function(path) {
-		this.observer.runUpdate(this.addNameToPath(this.path, path));
+	tobservable.prototype.notify = function(path,round) {
+		if(round==undefined)round=new Date().getTime()+""+Math.random();
+		this.observer.runUpdate(this.addNameToPath(this.path, path),round);
 	};
 
 	
@@ -186,30 +186,31 @@
 		 * relevant listeners. so, all listener that are registered along the path,
 		 * and all Listeners under the Path.
 		 * @param {string} pPath
-		 * @param {int} roundNumber, used, not to repeat updating the same observer. (optional)
+		 * @param {int} round, used, not to repeat updating the same observer. (optional)
 		 * @returns {undefined}
 		 */
-		observerTree.prototype.runUpdate = function runUpdate(pPath,roundNumber) {
-			if(roundNumber==undefined)roundNumber=Math.random()*10000000000000000;
+		observerTree.prototype.runUpdate = function runUpdate(pPath,round) {
+			if(round==undefined)round=new Date().getTime()+""+Math.random();
 			if (typeof(pPath) === "undefined")
 				pPath = '';
+			var pathParts = this.removeEmptyStrings(pPath.split('.'));
 			//update the listener on the current node
 			for (var ii in this.$listener)
-				if(this.$listener[ii].tNotificationRoundNumber!=roundNumber){
-					this.$listener[ii].tNotificationRoundNumber=roundNumber;
-					this.$listener[ii].update();
+				if(this.$listener[ii].tNotificationRoundNumber!=round){
+					this.$listener[ii].tNotificationRoundNumber=round;
+					this.$listener[ii].update(round,pathParts);
 				}
 			//go through the path
-			var pathParts = this.removeEmptyStrings(pPath.split('.'));
+			
 			if (pathParts.length > 0) {
 				var PropName = this.toProertyname(pathParts[0]);
 				if (typeof(this[PropName]) !== 'undefined') {
 					pathParts.splice(0, 1);//TODO
-					this[PropName].runUpdate( mergeToPath(pathParts),roundNumber);
+					this[PropName].runUpdate( mergeToPath(pathParts),round);
 				}
 			}else
 				for(var index in this) if(index.indexOf('_t_')===0)
-					this[index].runUpdate("",roundNumber);
+					this[index].runUpdate("",round);
 		};
 		
 		/**
@@ -258,23 +259,75 @@
 		}
 		return observerTree;
 	})();
-	return tobservable;
-})();
 
-/**
- * merges a array of names to a path
- * @private
- * @param {Array} array
- *      an array containing strings with the names
- * @returns {String}
- */
-var mergeToPath=function(array) {
-	var out = '';
-	for (var ii = 0; ii < array.length; ii++) 
-		if (out === '') 
-			out += array[ii];
-		else 
-			out += '.' + array[ii];
-	return out;
-}
-export = new tobservable({}); ;
+	tobservable.prototype.utils={
+		linkViews:function(sourcePath,destPath){
+			tobserver.on(sourcePath	,new this.LinkView(destPath));
+			tobserver.on(destPath	,new this.LinkView(sourcePath));
+			
+		},
+		linkToArrayViews:function(elementPath,arrayPath){
+			tobserver.on(elementPath,new this.LinkToArrayView(elementPath,arrayPath));
+			tobserver.on(arrayPath,new this.LinkFromArrayView(elementPath,arrayPath));
+		},
+		LinkView:function LinkView(destPath){
+			this.update=function updateLinkView(round){
+				tobserver.notify(destPath,round);
+			}
+		},
+		LinkToArrayView:function LinkToArrayView(elementPath,arrayPath){
+			this.update=function updateLinkView(round){
+				var sourceData=tobserver.get(elementPath).data;
+				var array=tobserver.get(arrayPath).data;
+				tobserver.notify(arrayPath+"."+array.indexOf(sourceData ),round);
+			}
+		},
+		LinkFromArrayView:function LinkFromArrayView(elementPath,arrayPath){
+			this.update=function updateLinkView(round,pathParts){
+				var sourceData=tobserver.get(elementPath).data;
+				var array=tobserver.get(arrayPath).data;
+				if(pathParts[0]!=undefined){
+					if(array[pathParts[0]]!==sourceData){
+						tobserver.notify(elementPath,round);
+					}
+				}else tobserver.notify(elementPath,round);
+			}
+		},
+		bindEvent:function bindEvent(el, eventName, eventHandler) {
+			if (el.addEventListener)
+				el.addEventListener(eventName, eventHandler, false); 
+			else if (el.attachEvent)
+				el.attachEvent('on'+eventName, eventHandler);
+		}
+	};
+	
+	/**
+	 * merges a array of names to a path
+	 * @private
+	 * @param {Array} array
+	 *      an array containing strings with the names
+	 * @returns {String}
+	 */
+	var mergeToPath=function(array) {
+		var out = '';
+		for (var ii = 0; ii < array.length; ii++) 
+			if (out === '') 
+				out += array[ii];
+			else 
+				out += '.' + array[ii];
+		return out;
+	}
+	/**
+	 * a helper function that checks if the nodeelement has a given class
+	 * @param {type} elem
+	 *      the dom-Element
+	 * @param {String} klass
+	 *      name of the class
+	 * @returns {Boolean}
+	 */
+	function hasClass( elem, klass ) {
+		 return (" " + elem.className + " " ).indexOf( " "+klass+" " ) > -1;
+	}
+
+	return new tobservable({});
+})();
