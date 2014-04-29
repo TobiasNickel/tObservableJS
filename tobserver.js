@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.2
+ * @version 0.3
  */
 
 /**
@@ -275,7 +275,7 @@
 		// liveupdate in the dom
 		tobserver.utils.bindEvent(document,'DOMNodeInserted',function(ev){
 			var element=ev.srcElement;
-			new tobserver.findTObserver(element);
+			tobserver.findTObserver(element);
 		});
 		//document.addEventListener('DOMNodeInserted',);
 		tobserver.utils.bindEvent(document,'DOMNodeRemoved',function(ev){
@@ -403,7 +403,9 @@
 		 *	the speaciel bevavior of the htmlList-Views
 		 */
 		StdElementView.prototype.updateList=function updateList(data,orgData){
-						
+			if(this.displayedOrdData!=orgData)
+				this.element.innerHTML="";
+			this.displayedOrdData=orgData;
 			var kids=this.element.children;
 			var displayedData=[];
 			var displayedElements=[];
@@ -419,6 +421,7 @@
 						}
 					});
 				}else{
+					this.attr.beforeUpdate(kids[i],function(){});
 					displayedData.push(kids[i].item);
 					if(kids[i].className=="tobserverlistitem"){
 						if(newPosition!=kids[i].position){
@@ -436,6 +439,7 @@
 			
 			//appendNewElements
 			var listIndex=0;
+			if(orgData==undefined)return;
 			for(var i=0;i<data.length;i++){
 				
 				if(displayedElements[listIndex]!=undefined&&data[i]==displayedElements[listIndex].item)
@@ -470,12 +474,22 @@
 		StdElementView.prototype.findAndUpdatePath=function findAndUpdatePath(element,root){
 			var attr=element.getAttribute==undefined?undefined:element.getAttribute("tObserver");
 			var kids = element.children;
-			if(attr==null)
+			if(attr==undefined)
 				for(var s in kids)
 					this.findAndUpdatePath(kids[s],root)
 			else 
 				this.setRoot(element,root);
 			
+		};
+		/**
+		 *	set the rootPath, for a new created List-View-Element
+		 */
+		StdElementView.prototype.setRoot=function setRoot(element,root){
+			var attr=element.getAttribute("tObserver");
+			var inputString="path:'"+root+".'+";
+			if(attr.indexOf(inputString)==-1)
+				attr=attr.replace("path:",inputString);
+			element.setAttribute("tObserver",attr);
 		};
 		/**
 		 *	simulat to findAndUpdatePath, but findAndUpdatePath, only can be used for the initialisation of the object.
@@ -499,16 +513,8 @@
 				}
 			}
 		}
-		/**
-		 *	set the rootPath, for a new created List-View-Element
-		 */
-		StdElementView.prototype.setRoot=function setRoot(element,root){
-			var attr=element.getAttribute("tObserver");
-			attr=attr.replace("path:","path:'"+root+".'+");
-			element.setAttribute("tObserver",attr);
-		};
 		return StdElementView;
-	}()
+	}();
 	
 	tobservable.prototype.utils={
 		stdViewBehavior:function(){
