@@ -12,16 +12,15 @@
  * @param {String} pPath the path of the data that is the current observer is careing about
  */
 export =( function(){
-	 function tobservable(pData, pObserverTree, pPath) {
+	function Tobservable(pData, pObserverTree, pPath) {
 		"use strict";
 		if (!pData) 
 			pData = undefined;
 		if (!pObserverTree) 
-			pObserverTree = new this.observerTree();
+			pObserverTree = new this.ObserverTree();
 		if (!pPath) 
 			pPath = '';
 
-		var that = this;
 		this.data = pData; // the ProgrammData
 		this.observer = pObserverTree;
 		this.path = pPath;
@@ -33,21 +32,21 @@ export =( function(){
 	 *      identifies the path, that you want to have
 	 * @returns {tobservable}
 	 */
-	tobservable.prototype.get = function(pPath) {
+	Tobservable.prototype.get = function(pPath) {
 		var pathParts = (pPath + '').split('.');
 		if (pathParts.length === 0)
 			return this;
 		else{
 			var name = pathParts[0];
 			if (pathParts.length === 1) {
-				return new tobservable(
-					this.data==undefined ? undefined : this.data[name],
+				return new Tobservable(
+					this.data===undefined ? undefined : this.data[name],
 					this.observer,
 					this.addNameToPath(this.path, name)
 				);
 			} else {
 				pathParts.splice(0, 1);
-				return new tobservable(this.data[name], this.observer, this.addNameToPath(this.path, name), this.rootTobservable).get(mergeToPath(pathParts));
+				return new Tobservable(this.data[name], this.observer, this.addNameToPath(this.path, name), this.rootTobservable).get(mergeToPath(pathParts));
 			}
 		}
 	};
@@ -63,7 +62,7 @@ export =( function(){
 	 *      
 	 * @returns {void}
 	 */
-	tobservable.prototype.set = function(pPath, value, run) {
+	Tobservable.prototype.set = function(pPath, value, run) {
 		var pathParts = (pPath + '').split('.');
 		var name = pPath;
 		if (pathParts.length === 0)
@@ -72,7 +71,7 @@ export =( function(){
 			if (run) {
 				var out = this.data[name].apply(this.data, value);
 				this.notify();
-				return this;
+				return out;
 			} else {
 				this.data[name] = value;
 				this.notify(name);
@@ -92,7 +91,7 @@ export =( function(){
 	 *      the Parameterlist for the given function 
 	 * @returns {void}
 	 */
-	tobservable.prototype.run = function(pPath, value) {
+	Tobservable.prototype.run = function(pPath, value) {
 		this.set(pPath, value, true);
 	};
 	/**
@@ -103,9 +102,9 @@ export =( function(){
 	 *      the name to add
 	 * @returns {String}
 	 */
-	tobservable.prototype.addNameToPath=function (path, name) {
+	Tobservable.prototype.addNameToPath=function (path, name) {
 		return path===''?name:path+'.'+name;
-	}
+	};
 	
 	/**
 	 * used to register a opserver on the described path
@@ -116,9 +115,9 @@ export =( function(){
 	 *      describes the path wherer the observer should be registered
 	 * @returns {void}
 	 */
-	tobservable.prototype.on = function(pPath,tObserver) {
-		if(tObserver==undefined)return;
-		tObserver=typeof tObserver == 'function' ? {update:tObserver}:tObserver
+	Tobservable.prototype.on = function(pPath,tObserver) {
+		if(tObserver===undefined)return;
+		tObserver=typeof tObserver == 'function' ? {update:tObserver}:tObserver;
 		this.observer.addListener(tObserver, pPath);
 	};
 	
@@ -128,7 +127,7 @@ export =( function(){
 	 *      tha data-path to the observer, where the last part is the name
 	 * @returns {void}
 	 */
-	tobservable.prototype.off = function(path,tObserver) {
+	Tobservable.prototype.off = function(path,tObserver) {
 		this.observer.removeListener(path,tObserver);
 	};
 
@@ -137,8 +136,8 @@ export =( function(){
 	 * @param {type} path
 	 * @returns {undefined}
 	 */
-	tobservable.prototype.notify = function(path,round) {
-		if(round==undefined)round=new Date().getTime()+""+Math.random();
+	Tobservable.prototype.notify = function(path,round) {
+		if(round===undefined)round=new Date().getTime()+""+Math.random();
 		this.observer.runUpdate(this.addNameToPath(this.path, path),round);
 	};
 
@@ -146,35 +145,34 @@ export =( function(){
 	/**
 	 * @class
 	 * @private
-	 * Only used by the tobservable to manage the observer
+	 * Only used by the Tobservable to manage the observer
 	 * @param {tobserbable} pObserver
 	 * @param {String} pNextPath
 	 * @returns {tobservable.observerTree}
 	 */
-	tobservable.prototype.observerTree=(function(){
-		function observerTree(pObserver, pNextPath) {
-			var that = this;
+	Tobservable.prototype.ObserverTree=(function(){
+		function ObserverTree(pObserver, pNextPath) {
 			this.$listener = [];
 			
 			//run initialisation of observertree
-			if (typeof(pNextPath) === "undefined") 
+			if (pNextPath === undefined) 
 				pNextPath = '';
 			
-			if (typeof(pObserver) !== "undefined")
+			if (pObserver !== undefined)
 				if (pNextPath === '') 
 					this.$listener.push(pObserver);
 				else 
 					this.addListener(pObserver, pNextPath);
 		}
 		//to add a Listener to the tree
-		observerTree.prototype.addListener = function(pListener, pPath) {
+		ObserverTree.prototype.addListener = function(pListener, pPath) {
 			var pathParts = pPath.split('.');
 			pathParts = this.removeEmptyStrings(pathParts);
 			if (pathParts.length > 0) {
 				var prop = this.toProertyname(pathParts[0]);
 				pathParts.shift();
-				if (typeof(this[prop]) === "undefined")
-					this[prop] = new observerTree(pListener, mergeToPath(pathParts));
+				if (this[prop] === undefined)
+					this[prop] = new ObserverTree(pListener, mergeToPath(pathParts));
 				else 
 					this[prop].addListener(pListener, mergeToPath(pathParts));
 			} else
@@ -189,9 +187,9 @@ export =( function(){
 		 * @param {int} round, used, not to repeat updating the same observer. (optional)
 		 * @returns {undefined}
 		 */
-		observerTree.prototype.runUpdate = function runUpdate(pPath,round) {
-			if(round==undefined)round=new Date().getTime()+""+Math.random();
-			if (typeof(pPath) === "undefined")
+		ObserverTree.prototype.runUpdate = function runUpdate(pPath,round) {
+			if(round===undefined)round=new Date().getTime()+""+Math.random();
+			if (pPath === undefined)
 				pPath = '';
 			var pathParts = this.removeEmptyStrings(pPath.split('.'));
 			//update the listener on the current node
@@ -204,7 +202,7 @@ export =( function(){
 			
 			if (pathParts.length > 0) {
 				var PropName = this.toProertyname(pathParts[0]);
-				if (typeof(this[PropName]) !== 'undefined') {
+				if (this[PropName] !== undefined) {
 					pathParts.splice(0, 1);//TODO
 					this[PropName].runUpdate( mergeToPath(pathParts),round);
 				}
@@ -219,48 +217,61 @@ export =( function(){
 		 *      the path to the lsitener, where the last part is the name
 		 * @returns {void}
 		 */
-		observerTree.prototype.removeListener = function removeListener(pPath,tObserver) {
+		ObserverTree.prototype.removeListener = function removeListener(pPath,tObserver) {
 			if (typeof(pPath) === "undefined") 
 				pPath = '';
 			var pathParts = pPath.split('.');
 			pathParts = this.removeEmptyStrings(pathParts);
-			if (pathParts.length > 1||(tObserver!=undefined && pathParts.length > 0)) {
-				var PropName = this.toProertyname(pathParts[0]);
+      var PropName = this.toProertyname(pathParts[0]);
+			if (pathParts.length > 1||(tObserver!==undefined && pathParts.length > 0)) {
+			
 				pathParts.shift();
 				if (typeof(this[PropName]) !== 'undefined')
 					this[PropName].removeListener( mergeToPath(pathParts),tObserver);
 			} else 
-				if (pathParts.length === 1 && this[pathParts[0]] != undefined) {
-					for (var ii in this.$listener) 
-						if (typeof this.$listener[ii].name === 'string' && this.$listener[ii].name === PropName) 
-							this.$listener.splice(ii, 1);
+				if (pathParts.length === 1 && this[pathParts[0]] !== undefined) {
+					for (var i in this.$listener) 
+						if (typeof this.$listener[i].name === 'string' && this.$listener[i].name === PropName) 
+							this.$listener.splice(i, 1);
 				}else
-					if(tObserver!=undefined)
+					if(tObserver!==undefined)
 						for (var ii=0;ii<this.$listener.length;ii++) 
 							if (this.$listener[ii]===tObserver || this.$listener[ii].update === tObserver) 
 								this.$listener.splice(ii, 1);
 				
 		};
 		//remove all "" strings
-		observerTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
+		ObserverTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
 			while (array.indexOf('') !== -1) 
 				array.splice(array.indexOf(''), 1);
 			return array;
-		}
+		};
 		//remove all "" strings
-		observerTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
+		ObserverTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
 			while (array.indexOf('') !== -1) 
 				array.splice(array.indexOf(''), 1);
 			return array;
-		}
+		};
 		
-		observerTree.prototype.toProertyname=function toProertyname(name) {
+		ObserverTree.prototype.toProertyname=function toProertyname(name) {
 			return '_t_' + name;
-		}
-		return observerTree;
+		};
+		return ObserverTree;
 	})();
 
-	tobservable.prototype.utils={
+	Tobservable.prototype.utils={
+		stdViewBehavior:function(){
+			var emptyFunction=function(){},
+				callSecoundF=function(e,f){f(e);};
+			return{
+				beforeAdd:emptyFunction,
+				afterAdd:emptyFunction,
+				beforeRemove:callSecoundF,
+				afterRemove:emptyFunction,
+				beforeUpdate:callSecoundF,
+				afterUpdate:emptyFunction
+			};
+		}(),
 		linkViews:function(sourcePath,destPath){
 			tobserver.on(sourcePath	,new this.LinkView(destPath));
 			tobserver.on(destPath	,new this.LinkView(sourcePath));
@@ -273,31 +284,25 @@ export =( function(){
 		LinkView:function LinkView(destPath){
 			this.update=function updateLinkView(round){
 				tobserver.notify(destPath,round);
-			}
+			};
 		},
 		LinkToArrayView:function LinkToArrayView(elementPath,arrayPath){
 			this.update=function updateLinkView(round){
 				var sourceData=tobserver.get(elementPath).data;
 				var array=tobserver.get(arrayPath).data;
 				tobserver.notify(arrayPath+"."+array.indexOf(sourceData ),round);
-			}
+			};
 		},
 		LinkFromArrayView:function LinkFromArrayView(elementPath,arrayPath){
 			this.update=function updateLinkView(round,pathParts){
 				var sourceData=tobserver.get(elementPath).data;
 				var array=tobserver.get(arrayPath).data;
-				if(pathParts[0]!=undefined){
+				if(pathParts[0]!==undefined){
 					if(array[pathParts[0]]!==sourceData){
 						tobserver.notify(elementPath,round);
 					}
 				}else tobserver.notify(elementPath,round);
-			}
-		},
-		bindEvent:function bindEvent(el, eventName, eventHandler) {
-			if (el.addEventListener)
-				el.addEventListener(eventName, eventHandler, false); 
-			else if (el.attachEvent)
-				el.attachEvent('on'+eventName, eventHandler);
+			};
 		}
 	};
 	
@@ -311,23 +316,9 @@ export =( function(){
 	var mergeToPath=function(array) {
 		var out = '';
 		for (var ii = 0; ii < array.length; ii++) 
-			if (out === '') 
-				out += array[ii];
-			else 
-				out += '.' + array[ii];
+			out+=(out===''?'':'.')+array[ii];
 		return out;
-	}
-	/**
-	 * a helper function that checks if the nodeelement has a given class
-	 * @param {type} elem
-	 *      the dom-Element
-	 * @param {String} klass
-	 *      name of the class
-	 * @returns {Boolean}
-	 */
-	function hasClass( elem, klass ) {
-		 return (" " + elem.className + " " ).indexOf( " "+klass+" " ) > -1;
-	}
-
+	};
+	
 	return new tobservable({});
 })();

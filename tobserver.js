@@ -1,27 +1,26 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.3
+ * @version 0.4
  */
 
 /**
  * @class
- * tobservable Class that handle the data
+ * Tobservable Class that handle the data
  * @param {mixed} pData the data to observe
  * @param {tobservable} pObserverTree the root observertree (used internally)
  * @param {String} pPath the path of the data that is the current observer is careing about
  */
- var tobserver=( function(window,document,undefined){
-	 function tobservable(pData, pObserverTree, pPath) {
+var tobserver=( function(window,document,undefined){
+	function Tobservable(pData, pObserverTree, pPath) {
 		"use strict";
 		if (!pData) 
 			pData = undefined;
 		if (!pObserverTree) 
-			pObserverTree = new this.observerTree();
+			pObserverTree = new this.ObserverTree();
 		if (!pPath) 
 			pPath = '';
 
-		var that = this;
 		this.data = pData; // the ProgrammData
 		this.observer = pObserverTree;
 		this.path = pPath;
@@ -33,21 +32,21 @@
 	 *      identifies the path, that you want to have
 	 * @returns {tobservable}
 	 */
-	tobservable.prototype.get = function(pPath) {
+	Tobservable.prototype.get = function(pPath) {
 		var pathParts = (pPath + '').split('.');
 		if (pathParts.length === 0)
 			return this;
 		else{
 			var name = pathParts[0];
 			if (pathParts.length === 1) {
-				return new tobservable(
-					this.data==undefined ? undefined : this.data[name],
+				return new Tobservable(
+					this.data===undefined ? undefined : this.data[name],
 					this.observer,
 					this.addNameToPath(this.path, name)
 				);
 			} else {
 				pathParts.splice(0, 1);
-				return new tobservable(this.data[name], this.observer, this.addNameToPath(this.path, name), this.rootTobservable).get(mergeToPath(pathParts));
+				return new Tobservable(this.data[name], this.observer, this.addNameToPath(this.path, name), this.rootTobservable).get(mergeToPath(pathParts));
 			}
 		}
 	};
@@ -63,7 +62,7 @@
 	 *      
 	 * @returns {void}
 	 */
-	tobservable.prototype.set = function(pPath, value, run) {
+	Tobservable.prototype.set = function(pPath, value, run) {
 		var pathParts = (pPath + '').split('.');
 		var name = pPath;
 		if (pathParts.length === 0)
@@ -72,7 +71,7 @@
 			if (run) {
 				var out = this.data[name].apply(this.data, value);
 				this.notify();
-				return this;
+				return out;
 			} else {
 				this.data[name] = value;
 				this.notify(name);
@@ -92,7 +91,7 @@
 	 *      the Parameterlist for the given function 
 	 * @returns {void}
 	 */
-	tobservable.prototype.run = function(pPath, value) {
+	Tobservable.prototype.run = function(pPath, value) {
 		this.set(pPath, value, true);
 	};
 	/**
@@ -103,9 +102,9 @@
 	 *      the name to add
 	 * @returns {String}
 	 */
-	tobservable.prototype.addNameToPath=function (path, name) {
+	Tobservable.prototype.addNameToPath=function (path, name) {
 		return path===''?name:path+'.'+name;
-	}
+	};
 	
 	/**
 	 * used to register a opserver on the described path
@@ -116,9 +115,9 @@
 	 *      describes the path wherer the observer should be registered
 	 * @returns {void}
 	 */
-	tobservable.prototype.on = function(pPath,tObserver) {
-		if(tObserver==undefined)return;
-		tObserver=typeof tObserver == 'function' ? {update:tObserver}:tObserver
+	Tobservable.prototype.on = function(pPath,tObserver) {
+		if(tObserver===undefined)return;
+		tObserver=typeof tObserver == 'function' ? {update:tObserver}:tObserver;
 		this.observer.addListener(tObserver, pPath);
 	};
 	
@@ -128,7 +127,7 @@
 	 *      tha data-path to the observer, where the last part is the name
 	 * @returns {void}
 	 */
-	tobservable.prototype.off = function(path,tObserver) {
+	Tobservable.prototype.off = function(path,tObserver) {
 		this.observer.removeListener(path,tObserver);
 	};
 
@@ -137,8 +136,8 @@
 	 * @param {type} path
 	 * @returns {undefined}
 	 */
-	tobservable.prototype.notify = function(path,round) {
-		if(round==undefined)round=new Date().getTime()+""+Math.random();
+	Tobservable.prototype.notify = function(path,round) {
+		if(round===undefined)round=new Date().getTime()+""+Math.random();
 		this.observer.runUpdate(this.addNameToPath(this.path, path),round);
 	};
 
@@ -146,35 +145,34 @@
 	/**
 	 * @class
 	 * @private
-	 * Only used by the tobservable to manage the observer
+	 * Only used by the Tobservable to manage the observer
 	 * @param {tobserbable} pObserver
 	 * @param {String} pNextPath
 	 * @returns {tobservable.observerTree}
 	 */
-	tobservable.prototype.observerTree=(function(){
-		function observerTree(pObserver, pNextPath) {
-			var that = this;
+	Tobservable.prototype.ObserverTree=(function(){
+		function ObserverTree(pObserver, pNextPath) {
 			this.$listener = [];
 			
 			//run initialisation of observertree
-			if (typeof(pNextPath) === "undefined") 
+			if (pNextPath === undefined) 
 				pNextPath = '';
 			
-			if (typeof(pObserver) !== "undefined")
+			if (pObserver !== undefined)
 				if (pNextPath === '') 
 					this.$listener.push(pObserver);
 				else 
 					this.addListener(pObserver, pNextPath);
 		}
 		//to add a Listener to the tree
-		observerTree.prototype.addListener = function(pListener, pPath) {
+		ObserverTree.prototype.addListener = function(pListener, pPath) {
 			var pathParts = pPath.split('.');
 			pathParts = this.removeEmptyStrings(pathParts);
 			if (pathParts.length > 0) {
 				var prop = this.toProertyname(pathParts[0]);
 				pathParts.shift();
-				if (typeof(this[prop]) === "undefined")
-					this[prop] = new observerTree(pListener, mergeToPath(pathParts));
+				if (this[prop] === undefined)
+					this[prop] = new ObserverTree(pListener, mergeToPath(pathParts));
 				else 
 					this[prop].addListener(pListener, mergeToPath(pathParts));
 			} else
@@ -189,9 +187,9 @@
 		 * @param {int} round, used, not to repeat updating the same observer. (optional)
 		 * @returns {undefined}
 		 */
-		observerTree.prototype.runUpdate = function runUpdate(pPath,round) {
-			if(round==undefined)round=new Date().getTime()+""+Math.random();
-			if (typeof(pPath) === "undefined")
+		ObserverTree.prototype.runUpdate = function runUpdate(pPath,round) {
+			if(round===undefined)round=new Date().getTime()+""+Math.random();
+			if (pPath === undefined)
 				pPath = '';
 			var pathParts = this.removeEmptyStrings(pPath.split('.'));
 			//update the listener on the current node
@@ -204,7 +202,7 @@
 			
 			if (pathParts.length > 0) {
 				var PropName = this.toProertyname(pathParts[0]);
-				if (typeof(this[PropName]) !== 'undefined') {
+				if (this[PropName] !== undefined) {
 					pathParts.splice(0, 1);//TODO
 					this[PropName].runUpdate( mergeToPath(pathParts),round);
 				}
@@ -219,59 +217,60 @@
 		 *      the path to the lsitener, where the last part is the name
 		 * @returns {void}
 		 */
-		observerTree.prototype.removeListener = function removeListener(pPath,tObserver) {
+		ObserverTree.prototype.removeListener = function removeListener(pPath,tObserver) {
 			if (typeof(pPath) === "undefined") 
 				pPath = '';
 			var pathParts = pPath.split('.');
 			pathParts = this.removeEmptyStrings(pathParts);
-			if (pathParts.length > 1||(tObserver!=undefined && pathParts.length > 0)) {
-				var PropName = this.toProertyname(pathParts[0]);
+      var PropName = this.toProertyname(pathParts[0]);
+			if (pathParts.length > 1||(tObserver!==undefined && pathParts.length > 0)) {
+			
 				pathParts.shift();
 				if (typeof(this[PropName]) !== 'undefined')
 					this[PropName].removeListener( mergeToPath(pathParts),tObserver);
 			} else 
-				if (pathParts.length === 1 && this[pathParts[0]] != undefined) {
-					for (var ii in this.$listener) 
-						if (typeof this.$listener[ii].name === 'string' && this.$listener[ii].name === PropName) 
-							this.$listener.splice(ii, 1);
+				if (pathParts.length === 1 && this[pathParts[0]] !== undefined) {
+					for (var i in this.$listener) 
+						if (typeof this.$listener[i].name === 'string' && this.$listener[i].name === PropName) 
+							this.$listener.splice(i, 1);
 				}else
-					if(tObserver!=undefined)
+					if(tObserver!==undefined)
 						for (var ii=0;ii<this.$listener.length;ii++) 
 							if (this.$listener[ii]===tObserver || this.$listener[ii].update === tObserver) 
 								this.$listener.splice(ii, 1);
 				
 		};
 		//remove all "" strings
-		observerTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
+		ObserverTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
 			while (array.indexOf('') !== -1) 
 				array.splice(array.indexOf(''), 1);
 			return array;
-		}
+		};
 		//remove all "" strings
-		observerTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
+		ObserverTree.prototype.removeEmptyStrings=function removeEmptyStrings(array) {
 			while (array.indexOf('') !== -1) 
 				array.splice(array.indexOf(''), 1);
 			return array;
-		}
+		};
 		
-		observerTree.prototype.toProertyname=function toProertyname(name) {
+		ObserverTree.prototype.toProertyname=function toProertyname(name) {
 			return '_t_' + name;
-		}
-		return observerTree;
+		};
+		return ObserverTree;
 	})();
 
 	/**
 	 * the name of the HTML-class for the elements that are going to became updated by std views
 	 * @type String
 	 */
-	tobservable.prototype.stdClassName="tObserver";
+	Tobservable.prototype.stdClassName="tObserver";
 	
 	/**
 	 * get all HTML objects with the given klass, and makes a view with them.
 	 * if also register observer ther on the DOM to create StdViews for the elements that are new Created
 	 * @returns {undefined}
 	 */
-	tobservable.prototype.initDomViews=function(){
+	Tobservable.prototype.initDomViews=function(){
 		// liveupdate in the dom
 		tobserver.utils.bindEvent(document,'DOMNodeInserted',function(ev){
 			var element=ev.srcElement;
@@ -279,26 +278,26 @@
 		});
 		//document.addEventListener('DOMNodeInserted',);
 		tobserver.utils.bindEvent(document,'DOMNodeRemoved',function(ev){
-			if(ev.srcElement!=undefined&& ev.srcElement.getAttribute!=undefined)
+			if(ev.srcElement!==undefined&& ev.srcElement.getAttribute!==undefined)
 				setTimeout(function(){
 					//var element=ev.srcElement;
 					var attr=ev.srcElement.getAttribute("tObserver");
-					if(attr!=undefined && ev.srcElement._tName!=undefined){
+					if(attr!==undefined && ev.srcElement._tName!==undefined){
 						var tPath=attr.path;
-						tPath=tPath!=undefined?tPath:"";
+						tPath=tPath!==undefined?tPath:"";
 						tobserver.off(tPath+"."+ev.srcElement._tName);
 					}
-				},1000)
-		})
+				},1000);
+		});
 		this.findTObserver();
 	};
-	tobservable.prototype.findTObserver=function(element){
-		if(element==undefined){ element=document.getElementsByTagName("html")[0];}
-		var attr=element.getAttribute==undefined?undefined:element.getAttribute("tObserver");
+	Tobservable.prototype.findTObserver=function(element){
+		if(element===undefined){ element=document.getElementsByTagName("html")[0];}
+		var attr=element.getAttribute===undefined?null:element.getAttribute("tObserver");
 		var kids = element.children;
-		if(attr==null)
+		if(attr===null)
 			for(var s in kids)
-				tobserver.findTObserver(kids[s])
+				tobserver.findTObserver(kids[s]);
 		else 
 			new tobserver.StdElementView(element,this);
 	}; 
@@ -309,22 +308,22 @@
 	 * @param {tobservable} tobserver
 	 * @returns {tobservable.StdElementView}
 	 */
-	tobservable.prototype.StdElementView=function(){
+	Tobservable.prototype.StdElementView=function(){
 		/**
 		 *	Contstructor for a StdElementView
-		 * 	it can be a simple view, or a htmlList-View. 
+		 *	it can be a simple view, or a htmlList-View. 
 		 */
 		function StdElementView(element,tobserver){
 			//todo: parse the tobserver-attr as {JSON}
-			var attr=element.getAttribute("tObserver")
-			if(attr==null)return;
-			if(element._tName!=undefined)return;
+			var attr=element.getAttribute("tObserver");
+			if(attr===null)return;
+			if(element._tName!==undefined)return;
 			attr=eval("({"+attr+"})");
-			attr.path=attr.path != undefined ? attr.path : "";
-			attr.outer=attr.outer != undefined ? attr.outer : "div";
+			attr.path=attr.path !== undefined ? attr.path : "";
+			attr.outer=attr.outer !== undefined ? attr.outer : "div";
 			attr.path=attr.path[attr.path.length-1]=='.'?
 				attr.path.slice(0,attr.path.length-1):attr.path;
-			attr.path=attr.path==''?'window':attr.path;
+			attr.path=attr.path===''?'window':attr.path;
 			
 			this.element=element;
 			
@@ -335,12 +334,12 @@
 			}else{
 				attr.defaultValue=element.getAttribute(attr.type);
 			}
-			attr.beforeAdd		=attr.beforeAdd!=undefined		?attr.beforeAdd		:tobserver.utils.stdViewBehavior.beforeAdd;
-			attr.afterAdd		=attr.afterAdd!=undefined		?attr.afterAdd		:tobserver.utils.stdViewBehavior.afterAdd;
-			attr.beforeRemove	=attr.beforeRemove!=undefined	?attr.beforeRemove	:tobserver.utils.stdViewBehavior.beforeRemove;
-			attr.afterRemove	=attr.afterRemove!=undefined	?attr.afterRemove	:tobserver.utils.stdViewBehavior.afterRemove;
-			attr.beforeUpdate	=attr.beforeUpdate!=undefined	?attr.beforeUpdate	:tobserver.utils.stdViewBehavior.beforeUpdate;
-			attr.afterUpdate	=attr.afterUpdate!=undefined	?attr.afterUpdate	:tobserver.utils.stdViewBehavior.afterUpdate;
+			attr.beforeAdd		=attr.beforeAdd!==undefined		?attr.beforeAdd		:tobserver.utils.stdViewBehavior.beforeAdd;
+			attr.afterAdd		=attr.afterAdd!==undefined		?attr.afterAdd		:tobserver.utils.stdViewBehavior.afterAdd;
+			attr.beforeRemove	=attr.beforeRemove!==undefined	?attr.beforeRemove	:tobserver.utils.stdViewBehavior.beforeRemove;
+			attr.afterRemove	=attr.afterRemove!==undefined	?attr.afterRemove	:tobserver.utils.stdViewBehavior.afterRemove;
+			attr.beforeUpdate	=attr.beforeUpdate!==undefined	?attr.beforeUpdate	:tobserver.utils.stdViewBehavior.beforeUpdate;
+			attr.afterUpdate	=attr.afterUpdate!==undefined	?attr.afterUpdate	:tobserver.utils.stdViewBehavior.afterUpdate;
 			
 			var name="tObserverName"+Math.random()*10000000000000000;
 			this.name=name;
@@ -358,7 +357,7 @@
 			var v=tobserver.get(this.attr.path).data;
 			v= typeof v === "number"?v+"":v;
 			var orgData=v;
-			if(this.attr.filter!=undefined)
+			if(this.attr.filter!==undefined)
 				v=this.attr.filter(v);
 			v= v!==undefined?v:this.attr.defaultValue;
 			switch(this.attr.type){
@@ -371,7 +370,7 @@
 				case 'htmlList':this.updateList(v,orgData); break;
 				case 'htmlOption':this.updateOption(v,orgData); break;
 				case 'value':
-					if(this.element.value=v)
+					if(this.element.value==v)
 						return;
 					this.element.value=v;
 				default: 
@@ -381,16 +380,16 @@
 			}
 		};
 		StdElementView.prototype.updateOption=function updateList(data,orgData){
-			if(data==false){
+			if(data===false){
 				this.element.innerHTML="";
 				this.element.display="none";
 			}else{
 				this.element.display="";
-				if(this.element.innerHTML==""){
+				if(this.element.innerHTML===""){
 					var newElement=document.createElement("div");
 					newElement.innerHTML=this.attr.preview;
 					this.findAndUpdatePath(newElement,this.attr.path);
-					while( newElement.children[0]!=null){
+					while( newElement.children[0]!==undefined){
 						this.attr.beforeAdd(newElement.children[0],orgData);
 						this.element.appendChild(newElement.children[0]);
 						this.attr.afterAdd(newElement.children[0],orgData);
@@ -405,17 +404,18 @@
 		StdElementView.prototype.updateList=function updateList(data,orgData){
 			if(this.displayedOrdData!=orgData)
 				this.element.innerHTML="";
+      var i=0;
 			this.displayedOrdData=orgData;
 			var kids=this.element.children;
 			var displayedData=[];
 			var displayedElements=[];
 			//remove deleted Elements and saving the position on the kids
-			for(var i =0;i<kids.length;i++){
+			for(i =0;i<kids.length;i++){
 				var newPosition=data.indexOf(kids[i].item);
 				if(newPosition==-1){
 					kids[i].innerHTML=kids[i].innerHTML.replace("tobserver","removedtObserver").trim();
 					this.attr.beforeRemove(kids[i],function(e){
-						if(e!=undefined){
+						if(e!==undefined){
 							e.remove();
 							i--;
 						}
@@ -432,17 +432,17 @@
 					}
 				}
 			}
-			displayedElements.sort(function(a,b){return a.position-b.position});
-			for(var i=0;i<displayedElements.length;i++){
+			displayedElements.sort(function(a,b){return a.position-b.position;});
+			for(i=0;i<displayedElements.length;i++){
 				this.element.appendChild(displayedElements[i]);
 			}
 			
 			//appendNewElements
 			var listIndex=0;
-			if(orgData==undefined)return;
-			for(var i=0;i<data.length;i++){
+			if(orgData===undefined)return;
+			for(i=0;i<data.length;i++){
 				
-				if(displayedElements[listIndex]!=undefined&&data[i]==displayedElements[listIndex].item)
+				if(displayedElements[listIndex]!==undefined&&data[i]==displayedElements[listIndex].item)
 					listIndex++;
 				else{
 					if(displayedData.indexOf(data[i])==-1){
@@ -455,7 +455,7 @@
 						this.findAndUpdatePath(kid,this.attr.path+"."+orgIndex);
 						kid.position=i;
 						kid.item=data[i];
-						if(displayedElements[listIndex]!=undefined)
+						if(displayedElements[listIndex]!==undefined)
 							displayedElements[listIndex].parentNode.insertBefore(kid, displayedElements[listIndex] );
 						else this.element.appendChild(kid);
 						
@@ -472,11 +472,11 @@
 		 *	if the Path for the a List-Item has changed, this function will update the childs
 		 */
 		StdElementView.prototype.findAndUpdatePath=function findAndUpdatePath(element,root){
-			var attr=element.getAttribute==undefined?undefined:element.getAttribute("tObserver");
+			var attr=element.getAttribute===undefined?null:element.getAttribute("tObserver");
 			var kids = element.children;
-			if(attr==undefined)
+			if(attr===null)
 				for(var s in kids)
-					this.findAndUpdatePath(kids[s],root)
+						this.findAndUpdatePath(kids[s],root);
 			else 
 				this.setRoot(element,root);
 			
@@ -495,31 +495,31 @@
 		 *	simulat to findAndUpdatePath, but findAndUpdatePath, only can be used for the initialisation of the object.
 		 */
 		StdElementView.prototype.updateRootPath=function updateRootPath(element,newRootPath,oldRootPath){
-			if(element==undefined)return;
-			if(newRootPath==undefined)return;
-			if(oldRootPath==undefined)return;
+			if(element===undefined)return;
+			if(newRootPath===undefined)return;
+			if(oldRootPath===undefined)return;
 			var kids=element.children;
 			for(var i in kids){
-				if(kids[i].attr!=undefined){
-					var realOrgPath=kids[i].attr.path.replace(oldRootPath+'.','')
+				if(kids[i].attr!==undefined){
+					var realOrgPath=kids[i].attr.path.replace(oldRootPath+'.','');
 					if(kids[i].attr.type=='htmlList'){
-						this.updateRootPath(kids[i],realOrgPath+"."+realOrgPath,oldRootPath+"."+realOrgPath)
+						this.updateRootPath(kids[i],realOrgPath+"."+realOrgPath,oldRootPath+"."+realOrgPath);
 					}
 					tobserver.off(kids[i].attr.path+"."+kids[i]._tName);
 					tobserver.on(newRootPath+'.'+realOrgPath,kids[i]._tObserver);
 					kids[i].attr.path=newRootPath+'.'+realOrgPath;
 				}else{
-					this.updateRootPath(kids[i],newRootPath,oldRootPath)
+					this.updateRootPath(kids[i],newRootPath,oldRootPath);
 				}
 			}
-		}
+		};
 		return StdElementView;
 	}();
 	
-	tobservable.prototype.utils={
+	Tobservable.prototype.utils={
 		stdViewBehavior:function(){
 			var emptyFunction=function(){},
-				callSecoundF=function(e,f){f(e)};
+				callSecoundF=function(e,f){f(e);};
 			return{
 				beforeAdd:emptyFunction,
 				afterAdd:emptyFunction,
@@ -527,7 +527,7 @@
 				afterRemove:emptyFunction,
 				beforeUpdate:callSecoundF,
 				afterUpdate:emptyFunction
-			}
+			};
 		}(),
 		linkViews:function(sourcePath,destPath){
 			tobserver.on(sourcePath	,new this.LinkView(destPath));
@@ -541,29 +541,31 @@
 		LinkView:function LinkView(destPath){
 			this.update=function updateLinkView(round){
 				tobserver.notify(destPath,round);
-			}
+			};
 		},
 		LinkToArrayView:function LinkToArrayView(elementPath,arrayPath){
 			this.update=function updateLinkView(round){
 				var sourceData=tobserver.get(elementPath).data;
 				var array=tobserver.get(arrayPath).data;
 				tobserver.notify(arrayPath+"."+array.indexOf(sourceData ),round);
-			}
+			};
 		},
 		LinkFromArrayView:function LinkFromArrayView(elementPath,arrayPath){
 			this.update=function updateLinkView(round,pathParts){
 				var sourceData=tobserver.get(elementPath).data;
 				var array=tobserver.get(arrayPath).data;
-				if(pathParts[0]!=undefined){
+				if(pathParts[0]!==undefined){
 					if(array[pathParts[0]]!==sourceData){
 						tobserver.notify(elementPath,round);
 					}
 				}else tobserver.notify(elementPath,round);
-			}
+			};
 		},
 		history:function(){
 			//NEEDED PARTS OF UNDERSCORE
 			var _ = {};
+      var Ctor=function(){};
+      var breaker={};
 			var	slice = Array.prototype.slice,
 				hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -579,14 +581,14 @@
 			_.bind = function (func, context) {
 				var args, bound;
 				if (nativeBind && func.bind === nativeBind) return nativeBind.apply(func, slice.call(arguments, 1));
-				if (!_.isFunction(func)) throw new TypeError;
+				if (!_.isFunction(func)) throw new TypeError();
 				args = slice.call(arguments, 2);
-				return bound = function () {
+				return function () {
 					if (!(this instanceof bound)) 
 						return func.apply(context, args.concat(slice.call(arguments)));
-					ctor.prototype = func.prototype;
-					var self = new ctor;
-					ctor.prototype = null;
+					Ctor.prototype = func.prototype;
+					var self = new Ctor();
+					Ctor.prototype = null;
 					var result = func.apply(self, args.concat(slice.call(arguments)));
 					if (Object(result) === result) return result;
 					return self;
@@ -608,26 +610,32 @@
 			// Delegates to **ECMAScript 5**'s native `forEach` if available.
 			var each = _.each = _.forEach = function (obj, iterator, context) {
 				if (obj == null) return obj;
+        var i,length;
 				if (nativeForEach && obj.forEach === nativeForEach) {
 					obj.forEach(iterator, context);
 				} else if (obj.length === +obj.length) {
-					for (var i = 0, length = obj.length; i < length; i++) {
+					for ( i = 0, length = obj.length; i < length; i++) {
 						if (iterator.call(context, obj[i], i, obj) === breaker) return;
 					}
 				} else {
 					var keys = _.keys(obj);
-					for (var i = 0, length = keys.length; i < length; i++) {
+					for ( i = 0, length = keys.length; i < length; i++) {
 						if (iterator.call(context, obj[keys[i]], keys[i], obj) === breaker) return;
 					}
 				}
 				return obj;
 			};
 
+      // Keep the identity function around for default iterators.
+      _.identity = function(value) {
+        return value;
+      };
+      
 			// Determine if at least one element in the object matches a truth test.
 			// Delegates to **ECMAScript 5**'s native `some` if available.
 			// Aliased as `any`.
-			var any = _.some = _.any = function (obj, predicate, context) {
-				predicate || (predicate = _.identity);
+			_.some = _.any = function (obj, predicate, context) {
+				//predicate || (predicate = _.identity);
 				var result = false;
 				if (obj == null) return result;
 				if (nativeSome && obj.some === nativeSome) return obj.some(predicate, context);
@@ -651,7 +659,7 @@
 				_.bindAll(this, 'checkUrl');
 
 				// Ensure that `History` can be used outside of the browser.
-				if (typeof window !== 'undefined') {
+				if (window !== undefined) {
 					this.location = window.location;
 					this.history = window.history;
 				}
@@ -713,10 +721,10 @@
 
 				// Figure out the initial configuration. Do we need an iframe?
 				// Is pushState desired ... is it available?
-				this.options = options == undefined ? {} : options;
+				this.options = options === undefined ? {} : options;
 				this.options.root = "/";
 
-				this.path = this.options.path == undefined ? "url" : path;
+				this.path = this.options.path === undefined ? "url" : this.options.path;
 				// _.extend({root: '/'}, this.options, options);
 				this.root = this.options.root;
 				this._wantsHashChange = this.options.hashChange !== false;
@@ -774,24 +782,24 @@
 				// and let them not navigate, 
 				// but update the the history
 				$(document).on("click", "a[href^='/']", function(event){
-					var href = $(event.currentTarget).attr('href')
+					var href = $(event.currentTarget).attr('href');
 
 					//# chain 'or's for other black list routes
-					passThrough = href.indexOf('sign_out') >= 0
+					var passThrough = href.indexOf('sign_out') >= 0;
 					//# Allow shift+click for new tabs, etc.
 					if(!passThrough && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey){
-							event.preventDefault()
+							event.preventDefault();
 							//# Remove leading slashes and hash bangs (backward compatablility)
-							url = href.replace(/^\//,'').replace('\#\!\/','')
+							var url = href.replace(/^\//,'').replace('#!\/','');
 							//# Instruct Backbone to trigger routing events
-							 tobserver.utils.history.navigate(url, { trigger: true });
+              tobserver.utils.history.navigate(url, { trigger: true });
 							return false;
 						}
 					}
 				);
 				
 				if (!this.options.silent) return this.loadUrl();
-			}
+			};
 
 			// Disable Backbone.history, perhaps temporarily. Not useful in a real app,
 			// but possibly useful for unit testing Routers.
@@ -812,7 +820,7 @@
 
 			// Checks the current URL to see if it has changed, and if it has,
 			// calls `loadUrl`, normalizing across the hidden iframe.
-			History.prototype.checkUrl = function (e) {
+			History.prototype.checkUrl = function () {
 				var current = this.getFragment();
 				if (current === this.fragment && this.iframe) {
 					current = this.getFragment(this.getHash(this.iframe));
@@ -880,7 +888,7 @@
 					// Some browsers require that `hash` contains a leading #.
 					location.hash = '#' + fragment;
 				}
-			}
+			};
 		// Create the default Backbone.history.
 			return new History();
 		}(),
@@ -902,25 +910,11 @@
 	var mergeToPath=function(array) {
 		var out = '';
 		for (var ii = 0; ii < array.length; ii++) 
-			if (out === '') 
-				out += array[ii];
-			else 
-				out += '.' + array[ii];
+			out+=(out===''?'':'.')+array[ii];
 		return out;
-	}
-	/**
-	 * a helper function that checks if the nodeelement has a given class
-	 * @param {type} elem
-	 *      the dom-Element
-	 * @param {String} klass
-	 *      name of the class
-	 * @returns {Boolean}
-	 */
-	function hasClass( elem, klass ) {
-		 return (" " + elem.className + " " ).indexOf( " "+klass+" " ) > -1;
-	}
+	};
 
-	return new tobservable(window);
+	return new Tobservable(window);
 })(window,document);
 
 tobserver.utils.bindEvent(window, 'load', function(){
