@@ -1,17 +1,18 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.4
+ * @version 0.5
  */
 
-/**
- * @class
- * Tobservable Class that handle the data
- * @param {mixed} pData the data to observe
- * @param {tobservable} pObserverTree the root observertree (used internally)
- * @param {String} pPath the path of the data that is the current observer is careing about
- */
+// the only global Tobservable caring about the window object
 var tobserver=( function(window,document,undefined){
+	/**
+	 * @class
+	 * Tobservable Class that handle the data
+	 * @param {mixed} pData the data to observe
+	 * @param {tobservable} pObserverTree the root observertree (used internally)
+	 * @param {String} pPath the path of the data that is the current observer is careing about
+	 */
 	function Tobservable(pData, pObserverTree, pPath) {
 		"use strict";
 		if (!pData) 
@@ -38,6 +39,7 @@ var tobserver=( function(window,document,undefined){
 			return this;
 		else{
 			var name = pathParts[0];
+			if(name==="")return this;
 			if (pathParts.length === 1) {
 				return new Tobservable(
 					this.data===undefined ? undefined : this.data[name],
@@ -281,7 +283,7 @@ var tobserver=( function(window,document,undefined){
 			if(ev.srcElement!==undefined&& ev.srcElement.getAttribute!==undefined)
 				setTimeout(function(){
 					//var element=ev.srcElement;
-					var attr=ev.srcElement.getAttribute("tObserver");
+					var attr=getAttr(ev.srcElement);
 					if(attr!==undefined && ev.srcElement._tName!==undefined){
 						var tPath=attr.path;
 						tPath=tPath!==undefined?tPath:"";
@@ -293,13 +295,16 @@ var tobserver=( function(window,document,undefined){
 	};
 	Tobservable.prototype.findTObserver=function(element){
 		if(element===undefined){ element=document.getElementsByTagName("html")[0];}
-		var attr=element.getAttribute===undefined?null:element.getAttribute("tObserver");
+		var attr=getAttr(element);
 		var kids = element.children;
 		if(attr===null)
 			for(var s in kids)
 				tobserver.findTObserver(kids[s]);
-		else 
+		else {
+			element.attr=attr;
 			new tobserver.StdElementView(element,this);
+			
+		}
 	}; 
 	
 	/**
@@ -315,14 +320,14 @@ var tobserver=( function(window,document,undefined){
 		 */
 		function StdElementView(element,tobserver){
 			//todo: parse the tobserver-attr as {JSON}
-			var attr=element.getAttribute("tObserver");
+			//var attr=element.getAttribute("tObserver");
+			var attr=getAttr(element);
 			if(attr===null)return;
 			if(element._tName!==undefined)return;
-			attr=eval("({"+attr+"})");
-			attr.path=attr.path !== undefined ? attr.path : "";
+			//attr=eval("({"+attr+"})");
 			attr.outer=attr.outer !== undefined ? attr.outer : "div";
-			attr.path=attr.path[attr.path.length-1]=='.'?
-				attr.path.slice(0,attr.path.length-1):attr.path;
+			//attr.path=attr.path[attr.path.length-1]=='.'?
+			//	attr.path.slice(0,attr.path.length-1):attr.path;
 			attr.path=attr.path===''?'window':attr.path;
 			
 			this.element=element;
@@ -347,36 +352,44 @@ var tobserver=( function(window,document,undefined){
 			this.element._tObserver=this;
 			this.element.attr=attr;
 			this.attr=attr;
-			tobserver.on(attr.path,this);
+			for(var i in attr.path)
+				tobserver.on(attr.path[i],this);
 			this.update();
 		}
 		/**
 		 *	the standard updatemethod, called by the tObserver
 		 */
 		StdElementView.prototype.update=function(){
-			var v=tobserver.get(this.attr.path).data;
-			v= typeof v === "number"?v+"":v;
-			var orgData=v;
-			if(this.attr.filter!==undefined)
-				v=this.attr.filter(v);
-			v= v!==undefined?v:this.attr.defaultValue;
-			switch(this.attr.type){
-				case undefined:
-					if(this.element.innerHTML!=v){
-						this.element.innerHTML=v;
-						this.attr.afterUpdate(this.element);
-					}
-				break;
-				case 'htmlList':this.updateList(v,orgData); break;
-				case 'htmlOption':this.updateOption(v,orgData); break;
-				case 'value':
-					if(this.element.value==v)
-						return;
-					this.element.value=v;
-				default: 
-					if(this.element.getAttribute(this.attr.type)==v)
-						return;
-					this.element.setAttribute(this.attr.type,v);
+			var type=undefined;
+			var filter=undefined;
+			for(var i in this.attr.path){
+				var v=tobserver.get(this.attr.path[i]).data;
+				v= typeof v === "number"?v+"":v;
+				var orgData=v;
+				
+				filter=this.attr.filter[i]===undefined?filter:this.attr.filter[i];
+				if(filter!==undefined)
+					v=filter(v);
+				v= v!==undefined?v:this.attr.defaultValue;
+				type=this.attr.type[i]===undefined?type:this.attr.type[i];
+				switch(type){
+					case undefined:
+						if(this.element.innerHTML!=v){
+							this.element.innerHTML=v;
+							this.attr.afterUpdate(this.element);
+						}
+					break;
+					case 'htmlList':this.updateList(v,orgData); break;
+					case 'htmlOption':this.updateOption(v,orgData); break;
+					case 'value':
+						if(this.element.value==v)
+							return;
+						this.element.value=v;
+					default: 
+						if(this.element.getAttribute(this.attr.type)==v)
+							return;
+						this.element.setAttribute(this.attr.type,v);
+				}
 			}
 		};
 		StdElementView.prototype.updateOption=function updateList(data,orgData){
@@ -472,27 +485,29 @@ var tobserver=( function(window,document,undefined){
 		 *	if the Path for the a List-Item has changed, this function will update the childs
 		 */
 		StdElementView.prototype.findAndUpdatePath=function findAndUpdatePath(element,root){
-			var attr=element.getAttribute===undefined?null:element.getAttribute("tObserver");
+			var attr=getAttr(element);
 			var kids = element.children;
 			if(attr===null)
 				for(var s in kids)
-						this.findAndUpdatePath(kids[s],root);
+					this.findAndUpdatePath(kids[s],root);
 			else 
 				this.setRoot(element,root);
 			
-		};
+		}; 
 		/**
 		 *	set the rootPath, for a new created List-View-Element
 		 */
 		StdElementView.prototype.setRoot=function setRoot(element,root){
-			var attr=element.getAttribute("tObserver");
-			var inputString="path:'"+root+".'+";
-			if(attr.indexOf(inputString)==-1)
-				attr=attr.replace("path:",inputString);
-			element.setAttribute("tObserver",attr);
+			var attr=getAttr(element);
+			if(attr.path===undefined)attr.path=[""];
+			for(var i in attr.path){
+				if(attr.path[i].indexOf(root)==-1)
+					attr.path[i]=root+"."+attr.path[i];
+			}
+			
 		};
 		/**
-		 *	simulat to findAndUpdatePath, but findAndUpdatePath, only can be used for the initialisation of the object.
+		 *	similar	to findAndUpdatePath, but findAndUpdatePath, only can be used for the initialisation of the object.
 		 */
 		StdElementView.prototype.updateRootPath=function updateRootPath(element,newRootPath,oldRootPath){
 			if(element===undefined)return;
@@ -501,13 +516,15 @@ var tobserver=( function(window,document,undefined){
 			var kids=element.children;
 			for(var i in kids){
 				if(kids[i].attr!==undefined){
-					var realOrgPath=kids[i].attr.path.replace(oldRootPath+'.','');
-					if(kids[i].attr.type=='htmlList'){
-						this.updateRootPath(kids[i],realOrgPath+"."+realOrgPath,oldRootPath+"."+realOrgPath);
+					for(var ii in kids[i].attr.path){
+						var realOrgPath=kids[i].attr.path[ii].replace(oldRootPath+'.','');
+						if(kids[i].attr.type=='htmlList'){
+							this.updateRootPath(kids[i],realOrgPath+"."+realOrgPath,oldRootPath+"."+realOrgPath);
+						}
+						tobserver.off(kids[i].attr.path[ii]+"."+kids[i]._tName);
+						tobserver.on(newRootPath+'.'+realOrgPath,kids[i]._tObserver);
+						kids[i].attr.path[ii]=newRootPath+'.'+realOrgPath;
 					}
-					tobserver.off(kids[i].attr.path+"."+kids[i]._tName);
-					tobserver.on(newRootPath+'.'+realOrgPath,kids[i]._tObserver);
-					kids[i].attr.path=newRootPath+'.'+realOrgPath;
 				}else{
 					this.updateRootPath(kids[i],newRootPath,oldRootPath);
 				}
@@ -516,6 +533,27 @@ var tobserver=( function(window,document,undefined){
 		return StdElementView;
 	}();
 	
+	/**
+	 * @parem e the dom node
+	 */
+	function getAttr(element){
+		if(element.attr!==undefined)return element.attr;
+		
+		var attr= element.getAttribute===undefined?null:element.getAttribute("tObserver");
+		if(attr===null)return null;
+		attr=eval("({"+attr+"})");
+		if(attr.path===undefined)attr.path=[""];
+		if(!Array.isArray(attr.path))attr.path=[attr.path]
+		for(var i in attr.path){
+			attr.path[i]=attr.path[i][attr.path[i].length-1]=='.'?
+				attr.path[i].slice(0,attr.path[i].length-1):attr.path[i];
+			attr.path[i]=attr.path[i]===''?'':attr.path[i];
+		}
+		if(!Array.isArray(attr.type))attr.type=[attr.type];
+		if(!Array.isArray(attr.filter))attr.filter=[attr.filter];
+		element.attr=attr;
+		return attr;
+	}
 	Tobservable.prototype.utils={
 		stdViewBehavior:function(){
 			var emptyFunction=function(){},
