@@ -84,7 +84,7 @@ This Modul was designed to create the behavior as you can find on http://usatoda
 tObservableJS provide an htmlView-System, that rely on your data. https://github.com/TobiasNickel/tObservableJS/blob/master/htmlView.md
 
 ##Thanks + Inspiration
-This framework is developed by Tobias Nickel, a student at the university of applied science in Stralsund/Germany. During a internship at avandeo in Shanghai, a teammember told me to look at angular.js. While studying the documentation, I feld, that I do would not write an Javascript-Application, I would write a Angular-application. I thought, there is a lot of overhead to learn to use it properly and not being cut at my creativity. 
+This framework is developed by Tobias Nickel, a student at the university of applied science in Stralsund/Germany. During a internship at avandeo in Shanghai, a teammember told me to look at angular.js. While studying the documentation, I feld, that I would no longer write an Javascript-Application. I would write an Angular-Application. I thought, there is a lot of overhead to learn, to use it properly and not being cut with my creativity. 
 
 But I learned what is an MVC framework in Javascript. Then I also took a look at knockout and backbone. Both frameworks need also a long overhead to learn and need to fit the application into there framework. tObservable can be added to a project during the work, while having the wish to have the advantage of an MVC.
 
