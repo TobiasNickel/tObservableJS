@@ -2,7 +2,7 @@
 
 tObservableJS will make programming much more enjoyable. 
 
-###The big plus points are:
+### The big plus points are:
   1. Learning even less vocabulary
   2. Keeping the whole flexibility of Javascript
   3. Getting the comfort as you might love in MVC-frameworks
@@ -75,12 +75,12 @@ Usualy you will need to register two views to have bidirectional updates. To mak
 * **new linkViews(sourcePath,destPath)** creates two LinkViews for bidirectional updates.
 * **new linkToArrayViews(elementPath,arrayPath)** creates a LinkToArrayView and a LinkFromArrayView for bidirectional updates, between an Object and an Array.
 
-## history modul
+### history modul
 There is taken a good part from Backbone and reworked it to support the work with TobservableJS. Under tobserver.utils.history the new modul. It has a start method to follow changes on the URL. So, write a link to your side, the page will not reload, but the tobservable-path givenoptions for the start will be updated by the tobserver. The default is just **"url"**, so register a view, to this path, and you can reload some parts of your page. The modul supports the functions of the browser to navigate back. Because the user now can share the new link on the address-line in the browser, you should make sure that your server can deliver the same content as your JS-View. 
 
 This Modul was designed to create the behavior as you can find on http://usatoday.com/
 
-## HTML Views
+### HTML Views
 tObservableJS provide an htmlView-System, that rely on your data. https://github.com/TobiasNickel/tObservableJS/blob/master/htmlView.md
 
 ##Thanks + Inspiration
