@@ -59,7 +59,8 @@ observer= new function(){
 ```
 In that way, you manage by yourselve, what kind of observer you program. One for everything, seperate for UI and communication or use them to store, restore information to local storage or implementing your businesslogic. 
 
-With this thinks in your hand, you should be able to structure your Web-Appliacation. The first Web-Apps, that have been using tObservableJS, only has used the basic tobserver and impletmenten all UI Views by itself.
+## Additional Stuff
+With this thinks in your hand so far, you should be able to structure and build Web-Appliacations. The first Web-Apps, that have been using tObservableJS, only has used the basic tobserver and impletmenten all UI Views by itself.
 
 ### on Node
 On node you can't need the HTML-Views so all the stuff is removed. using var tobserver = require('nodeTobserver.js'); you get the tobserver as it is on the browser. It has a Property .data, that is an empty object. It is the root-Object, but can be changed. 
@@ -72,8 +73,8 @@ Under tobserver.utils.* you will find some helpful stuf. Here is a list of the t
 * **LinkFromArrayView(elementPath,arrayPath)** updates the views for the ElementPath when there are changes in the Array, it also only updates the element, when the particular element on the array was manipulated. 
 
 Usualy you will need to register two views to have bidirectional updates. To make that more comfortable there are two methods given in the utilis.
-* **new linkViews(sourcePath,destPath)** creates two LinkViews for bidirectional updates.
-* **new linkToArrayViews(elementPath,arrayPath)** creates a LinkToArrayView and a LinkFromArrayView for bidirectional updates, between an Object and an Array.
+* ** linkViews(sourcePath,destPath)** creates two LinkViews for bidirectional updates.
+* ** linkToArrayViews(elementPath,arrayPath)** creates a LinkToArrayView and a LinkFromArrayView for bidirectional updates, between an Object and an Array.
 
 ### history modul
 There is taken a good part from Backbone and reworked it to support the work with TobservableJS. Under tobserver.utils.history the new modul. It has a start method to follow changes on the URL. So, write a link to your side, the page will not reload, but the tobservable-path givenoptions for the start will be updated by the tobserver. The default is just **"url"**, so register a view, to this path, and you can reload some parts of your page. The modul supports the functions of the browser to navigate back. Because the user now can share the new link on the address-line in the browser, you should make sure that your server can deliver the same content as your JS-View. 
