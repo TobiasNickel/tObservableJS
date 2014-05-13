@@ -1,5 +1,5 @@
 # HTML Views
-The tObservableJS framework, provides a smarter way, to write HTML-themplates that will get compiled automaticly by using the data they belong too. When the data get updated through the tobserver, the views will also keeped up to date. I will describe the view-System on a simple example, with a Page, that is displaying a list of image-Galleries. The steps from this documentation are available as files unter "/tutorial". We create an .html-file, write some put all our app-Data to a new object, within a script-tag in the head.
+The tObservableJS framework, provides a smarter way, to write HTML-templates that will get compiled automaticly by using the data they belong too. When the data get updated through the tobserver, the views will also keeped up to date. I will describe the view-System on a simple example, with a Page, that is displaying a list of image-Galleries. The steps in this documentation are available as files under "/tutorial". For training we create an .html-file, write some put all our app-Data to a new object, within a script-tag in the head.
 ```HTML
 <!-- step 1 -->
 <!DOCTYPE html>
