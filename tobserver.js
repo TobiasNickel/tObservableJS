@@ -1076,7 +1076,7 @@ var tobserver=( function(window,document,undefined){
 				el.attachEvent('on'+eventName, eventHandler);
 		}
 	};
-	
+
 	/**
 	 * merges a array of names to a path
 	 * @private
