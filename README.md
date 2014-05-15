@@ -81,6 +81,10 @@ There is taken a good part from Backbone and reworked it to support the work wit
 
 This Modul was designed to create the behavior as you can find on http://usatoday.com/
 
+### router modul
+Now there is a Router under tobserver.utils.router. This router has an **on** method. It takes two prameter. The first is a string, discribing how the URL looks like and the second is the callback, getting the eventOpject, with params that are named on the url-description. for the format look at https://github.com/EngineeringMode/Grapnel.js
+To let the Router follow the URL, simple start the history-module. 
+
 ### HTML Views
 tObservableJS provide an htmlView-System, that rely on your data. https://github.com/TobiasNickel/tObservableJS/blob/master/htmlView.md
 
@@ -88,5 +92,7 @@ tObservableJS provide an htmlView-System, that rely on your data. https://github
 This framework is developed by Tobias Nickel, a student at the university of applied science in Stralsund/Germany. During a internship at avandeo in Shanghai, a teammember told me to look at angular.js. While studying the documentation, I feld, that I would no longer write an Javascript-Application. I would write an Angular-Application. I thought, there is a lot of overhead to learn, to use it properly and not being cut with my creativity. 
 
 But I learned what is an MVC framework in Javascript. Then I also took a look at knockout and backbone. Both frameworks need also a long overhead to learn and need to fit the application into there framework. tObservable can be added to a project during the work, while having the wish to have the advantage of an MVC.
+
+An additional thanks need to go to two sources where took some code from. Backbone, where the History-Modul is used from and Grapnel.js, witch is used as router, but stringly simplified. 
 
 Thanks for looking at tObservableJS please leave a comment, for further development.
