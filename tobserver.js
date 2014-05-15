@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.5
+ * @version 0.6
  */
 
 // the only global Tobservable caring about the window object
@@ -331,13 +331,19 @@ var tobserver=( function(window,document,undefined){
 			attr.path=attr.path===''?'window':attr.path;
 			
 			this.element=element;
-			
-			if(attr.type=="htmlList"||attr.type=="htmlOption"){
-				attr.defaultValue=element.innerHTML;
-				attr.preview=this.element.innerHTML;
-				this.element.innerHTML="";
-			}else{
-				attr.defaultValue=element.getAttribute(attr.type);
+			attr.defaultValue=[];
+			attr.preview=[];
+			for(var i in attr.type){
+				if(attr.type[i]==="htmlList"||attr.type==="htmlOption"){
+					attr.defaultValue[i]=element.innerHTML;
+					attr.preview[i]=this.element.innerHTML;
+					this.element.innerHTML="";
+				}else{
+					attr.defaultValue[i]=element.getAttribute(attr.type);
+				}
+				if(attr.type[i]==="value"){
+					this.folowElement(element)
+				}
 			}
 			attr.beforeAdd		=attr.beforeAdd!==undefined		?attr.beforeAdd		:tobserver.utils.stdViewBehavior.beforeAdd;
 			attr.afterAdd		=attr.afterAdd!==undefined		?attr.afterAdd		:tobserver.utils.stdViewBehavior.afterAdd;
@@ -417,7 +423,7 @@ var tobserver=( function(window,document,undefined){
 		StdElementView.prototype.updateList=function updateList(data,orgData){
 			if(this.displayedOrdData!=orgData)
 				this.element.innerHTML="";
-      var i=0;
+			var i=0;
 			this.displayedOrdData=orgData;
 			var kids=this.element.children;
 			var displayedData=[];
@@ -530,6 +536,17 @@ var tobserver=( function(window,document,undefined){
 				}
 			}
 		};
+		StdElementView.prototype.folowElement=function (element) {
+			var change=function(){
+				var attr=element.attr;
+				for(var i in attr.path){
+					if(attr.type[i]==="value")
+						tobserver.set(attr.path[i],element.value);
+				}
+			};
+			element.addEventListener("change",change);
+			element.addEventListener("keyup",change);
+		}
 		return StdElementView;
 	}();
 	
@@ -602,8 +619,8 @@ var tobserver=( function(window,document,undefined){
 		history:function(){
 			//NEEDED PARTS OF UNDERSCORE
 			var _ = {};
-      var Ctor=function(){};
-      var breaker={};
+			var Ctor=function(){};
+			var breaker={};
 			var	slice = Array.prototype.slice,
 				hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -647,8 +664,8 @@ var tobserver=( function(window,document,undefined){
 			// Handles objects with the built-in `forEach`, arrays, and raw objects.
 			// Delegates to **ECMAScript 5**'s native `forEach` if available.
 			var each = _.each = _.forEach = function (obj, iterator, context) {
-				if (obj == null) return obj;
-        var i,length;
+			if (obj == null) return obj;
+			var i,length;
 				if (nativeForEach && obj.forEach === nativeForEach) {
 					obj.forEach(iterator, context);
 				} else if (obj.length === +obj.length) {
@@ -830,12 +847,15 @@ var tobserver=( function(window,document,undefined){
 							//# Remove leading slashes and hash bangs (backward compatablility)
 							var url = href.replace(/^\//,'').replace('#!\/','');
 							//# Instruct Backbone to trigger routing events
-              tobserver.utils.history.navigate(url, { trigger: true });
+							tobserver.utils.history.navigate(url, { trigger: true });
 							return false;
 						}
 					}
 				);
-				
+				tobserver.on(this.path,function(){
+					var url=tobserver.get(tobserver.utils.history.path).data;
+					tobserver.utils.router.route(url);
+				});
 				if (!this.options.silent) return this.loadUrl();
 			};
 
@@ -930,6 +950,107 @@ var tobserver=( function(window,document,undefined){
 		// Create the default Backbone.history.
 			return new History();
 		}(),
+		router:(function(root) {
+            "use strict";
+            function Grapnel() {
+                this.events = []; // Event Listeners
+                this.params = []; // Named parameters
+            }
+            Grapnel.prototype.version = '0.4.2';// Version
+            /**
+             * Fire an event listener
+             *
+             * @param {String} event
+             * @param {Mixed} [attributes] Parameters that will be applied to event listener
+             * @return self
+             */
+            Grapnel.prototype.route = function(url) {
+                var params = Array.prototype.slice.call(arguments, 1);
+                // Call matching events
+                this.events.forEach(function(fn) {
+                    fn.apply(this, params);
+                });
+                return this;
+            };
+            /**
+             * Create a RegExp Route from a string
+             * This is the heart of the router and I've made it as small as possible!
+             *
+             * @param {String} Path of route
+             * @param {Array} Array of keys to fill
+             * @param {Bool} Case sensitive comparison
+             * @param {Bool} Strict mode
+             */
+            Grapnel.regexRoute = function(path, keys, sensitive, strict) {
+                if (path instanceof RegExp)
+                    return path;
+                if (path instanceof Array)
+                    path = '(' + path.join('|') + ')';
+                // Build route RegExp
+                path = path.concat(strict ? '' : '/?')
+                        .replace(/\/\(/g, '(?:/')
+                        .replace(/\+/g, '__plus__')
+                        .replace(/(\/)?(\.)?:(\w+)(?:(\(.*?\)))?(\?)?/g, function(_, slash, format, key, capture, optional) {
+                            keys.push({name: key, optional: !!optional});
+                            slash = slash || '';
+
+                            return '' + (optional ? '' : slash) + '(?:' + (optional ? slash : '') + (format || '') + (capture || (format && '([^/.]+?)' || '([^/]+?)')) + ')' + (optional || '');
+                        })
+                        .replace(/([\/.])/g, '\\$1')
+                        .replace(/__plus__/g, '(.+)')
+                        .replace(/\*/g, '(.*)');
+
+                return new RegExp('^' + path + '$', sensitive ? '' : 'i');
+            };
+            /**
+             * Add an action and handler
+             *
+             * @param {String|RegExp} action name
+             * @param {Function} callback
+             * @return self
+             */
+            Grapnel.prototype.on = Grapnel.prototype.add = Grapnel.prototype.get = function(route, handler) {
+                var that = this,
+                        keys = [],
+                        regex = Grapnel.regexRoute(route, keys);
+
+                var invoke = function(url) {
+                    // If action is instance of RegEx, match the action
+                    var match = window.url.match(regex);
+                    // Test matches against current action
+                    if (match) {
+                        // Match found
+                        var event = {
+                            route: route,
+                            value: url,
+                            handler: handler,
+                            params: that.params,
+                            regex: match,
+                            propagateEvent: true,
+                            preventDefault: function() {
+                                this.propagateEvent = false;
+                            }
+                        };
+                        // Callback
+                        var req = {params: {}, keys: keys, matches: event.regex.slice(1)};
+                        // Build parameters
+                        req.matches.forEach(function(value, i) {
+                            var key = (keys[i] && keys[i].name) ? keys[i].name : i;
+                            // Parameter key will be its key or the iteration index. This is useful if a wildcard (*) is matched
+                            req.params[key] = (value) ? decodeURIComponent(value) : undefined;
+                        });
+                        // Call handler
+                        handler.call(that, req, event);
+                    }
+                    // Returns that
+                    return that;
+                };
+                // Invoke and add listeners -- this uses less code
+                this.events.push(invoke);
+                return this;
+            };
+            return new Grapnel;
+        }).call({}, window),
 		bindEvent:function bindEvent(el, eventName, eventHandler) {
 			if (el.addEventListener)
 				el.addEventListener(eventName, eventHandler, false); 
