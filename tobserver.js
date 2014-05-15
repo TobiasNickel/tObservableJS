@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.6
+ * @version 0.7
  */
 
 // the only global Tobservable caring about the window object
@@ -139,10 +139,28 @@ var tobserver=( function(window,document,undefined){
 	 * @returns {undefined}
 	 */
 	Tobservable.prototype.notify = function(path,round) {
-		if(round===undefined)round=new Date().getTime()+""+Math.random();
-		this.observer.runUpdate(this.addNameToPath(this.path, path),round);
+		if(path===undefined)path="";
+		if(round===undefined)round=new Date().getTime()+""+Math.random();;
+		path=this.addNameToPath(this.path, path);
+		if(this.notifyee.paths.indexOf(path) !== -1)return;
+		this.notifyee.paths.push(path);
+		tobserver.notifyee.round=round;
+		setTimeout(function(){tobserver.notifyee.notify(round)},150)
+		
 	};
-
+	
+	Tobservable.prototype.notifyee = {
+		notify:function(round){
+			if(round==this.round){
+				for(var i in this.paths)
+					tobserver.observer.runUpdate(tobserver.notifyee.paths[i],this.round);
+				this.paths=[];
+				this.round=round;
+			}
+		},
+		round:0,
+		paths:[]
+	}
 	
 	/**
 	 * @class
