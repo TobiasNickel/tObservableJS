@@ -148,7 +148,7 @@ var tobserver=( function(window,document,undefined){
 		this.notifyee.paths.push(path);
 		tobserver.notifyee.round=round;
 		clearTimeout(tobserver.notifyee.timeout);
-		tobserver.notifyee.timeout=
+		tobserver.notifyee.timeout =
 			setTimeout(function(){tobserver.notifyee.notify(round)},10);
 	};
 	
