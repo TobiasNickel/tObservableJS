@@ -148,7 +148,7 @@ var tobserver=( function(window,document,undefined){
 		this.notifyee.paths.push(path);
 		tobserver.notifyee.round=round;
 		clearTimeout(tobserver.notifyee.timeout);
-		tobserver.notifyee.timeout =
+		tobserver.notifyee.timeout=
 			setTimeout(function(){tobserver.notifyee.notify(round)},10);
 	};
 	
@@ -401,6 +401,7 @@ var tobserver=( function(window,document,undefined){
 				v= v!==undefined?v:this.attr.defaultValue;
 				type=this.attr.type[i]===undefined?type:this.attr.type[i];
 				switch(type){
+					case 'innerHTML':
 					case undefined:
 						if(this.element.innerHTML!=v){
 							this.element.innerHTML=v;
@@ -414,9 +415,9 @@ var tobserver=( function(window,document,undefined){
 							return;
 						this.element.value=v;
 					default: 
-						if(this.element.getAttribute(this.attr.type)==v)
+						if(this.element.getAttribute(type)==v)
 							return;
-						this.element.setAttribute(this.attr.type,v);
+						this.element.setAttribute(type,v);
 				}
 			}
 		};
