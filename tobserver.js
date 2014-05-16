@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.7
+ * @version 0.8
  */
 
 // the only global Tobservable caring about the window object
@@ -75,8 +75,10 @@ var tobserver=( function(window,document,undefined){
 				this.notify();
 				return out;
 			} else {
-				this.data[name] = value;
-				this.notify(name);
+				if(this.data[name] !== value){
+					this.data[name] = value;
+					this.notify(name);
+				}
 				return this;
 			}
 		} else {
@@ -145,21 +147,23 @@ var tobserver=( function(window,document,undefined){
 		if(this.notifyee.paths.indexOf(path) !== -1)return;
 		this.notifyee.paths.push(path);
 		tobserver.notifyee.round=round;
-		setTimeout(function(){tobserver.notifyee.notify(round)},150)
-		
+		clearTimeout(tobserver.notifyee.timeout);
+		tobserver.notifyee.timeout=
+			setTimeout(function(){tobserver.notifyee.notify(round)},10);
 	};
 	
 	Tobservable.prototype.notifyee = {
 		notify:function(round){
-			if(round==this.round){
-				for(var i in this.paths)
-					tobserver.observer.runUpdate(tobserver.notifyee.paths[i],this.round);
+			if(this.round==round){
+				var paths=this.paths;
 				this.paths=[];
-				this.round=round;
+				for(var i in paths)
+					tobserver.observer.runUpdate(paths[i],this.round);
 			}
 		},
 		round:0,
-		paths:[]
+		paths:[],
+		timeout:0
 	}
 	
 	/**
@@ -1076,7 +1080,7 @@ var tobserver=( function(window,document,undefined){
 				el.attachEvent('on'+eventName, eventHandler);
 		}
 	};
-
+	
 	/**
 	 * merges a array of names to a path
 	 * @private
