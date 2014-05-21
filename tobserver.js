@@ -427,9 +427,15 @@ var tobserver = (function (window, document, undefined) {
                         return;
                     this.element.value = v;
                 default:
-                    if (this.element.getAttribute(type) == v)
-                        return;
-                    this.element.setAttribute(type, v);
+                    if(this.element.style[type]===undefined){
+                        if (this.element.getAttribute(type) == v)
+                            return;
+                        this.element.setAttribute(type, v);
+                    } else {
+                        if (this.element.style[type] == v)
+                            return;
+                        this.element.style[type] = v;
+                    }
                 }
             }
         };
@@ -581,7 +587,8 @@ var tobserver = (function (window, document, undefined) {
                 for (var i in attr.path) {
                     if (attr.type[i] === "value"){
                         var value=element.value;
-                        if(element.getAttribute("type").toLocaleLowerCase().trim()==="number")
+                        var type=element.getAttribute("type")
+                        if(type!==null && type.toLocaleLowerCase().trim()==="number")
                             value=parseFloat(value);
                         tobserver.set(attr.path[i], element.value);
                         
@@ -698,7 +705,7 @@ var tobserver = (function (window, document, undefined) {
                 if(nextPathparts[0]!==undefined && nextPathparts[1]!==undefined){
                     var index=nextPathparts.splice(0,1);
                     var paramName=nextPathparts.splice(0,1);
-                    var newSetValue = tobserver.get(arrayPath+"."+index+"."+paramName).data;
+                    var newSetValue = tobserver.get(arrayPath+"."+index).data;
                     computeProperty[paramName](arrayPath+"."+index,newSetValue,nextPathparts)
                 }
             }
@@ -720,8 +727,8 @@ var tobserver = (function (window, document, undefined) {
             this.update=function(round,nextPathparts){
                 if(nextPathparts[0]!==undefined ){
                     var paramName=nextPathparts.splice(0,1);
-                    var newSetValue = tobserver.get(arrayPath+"."+paramName).data;
-                    computeProperty[paramName](arrayPath,newSetValue,nextPathparts)
+                    var newSetValue = tobserver.get(objectPath).data;
+                    computeProperty[paramName](objectPath,newSetValue,nextPathparts)
                 }
             }
         },
