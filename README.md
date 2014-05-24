@@ -1,6 +1,11 @@
 # tObservableJS
 
-tObservableJS will make programming much more enjoyable. 
+tObservableJS is not just two way binding, it is All-Way-Binding ! ! 
+
+tObservableJS observes not the objects directly, but a path from the global scope. So if you push new data to the graph, the observer will keep untouched. They just update there views (like UI or representation on the servers DB). There is also an history module that can follow the URL and a route module to register operations based on a URL call. Not to forget the htmlView-system, that help you to keep presentation and logic separated. It only updates the changed elements asynchronously.
+
+![alt logo](https://raw.githubusercontent.com/TobiasNickel/tObservableJS/master/logo.png "Logo")
+
 
 ### The big plus points are:
   1. Learning even less vocabulary
