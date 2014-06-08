@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.10
+ * @version 0.9
  */
 
 // the only global Tobservable caring about the window object
@@ -32,7 +32,7 @@ var tobserver = (function (window, document, undefined) {
 		while (array.indexOf('') !== -1)
 			array.splice(array.indexOf(''), 1);
 		return array;
-	};
+	}
 	
 	/**
 	 * will return a tObservable, that observes the given path
@@ -127,7 +127,6 @@ var tobserver = (function (window, document, undefined) {
 			this.set(pPath, value, true);
 	};
 	/**
-	 * @private
 	 * @param {String} path
 	 *      data Path as known
 	 * @param {type} name
@@ -145,10 +144,9 @@ var tobserver = (function (window, document, undefined) {
 	 *      an object like: {name:"someName",update:function(){}}
 	 * @param {type} pPath
 	 *      describes the path wherer the observer should be registered
-	 * @returns {void}
 	 */
 	Tobservable.prototype.on = function (pPath, tObserver) {
-		if (tObserver === undefined) return;
+		if (!tObserver) return;
 		tObserver = typeof tObserver == 'function' ? {
 			update: tObserver
 		} : tObserver;
@@ -159,7 +157,6 @@ var tobserver = (function (window, document, undefined) {
 	 * remove the described observer
 	 * @param {type} path
 	 *      tha data-path to the observer, where the last part is the name
-	 * @returns {void}
 	 */
 	Tobservable.prototype.off = function (path, tObserver) {
 		this.observer.removeListener(path, tObserver);
@@ -168,7 +165,6 @@ var tobserver = (function (window, document, undefined) {
 	/**
 	 * used to tell all observer on the given path to update there view
 	 * @param {type} path
-	 * @returns {undefined}
 	 */
 	Tobservable.prototype.notify = function (path, round) {
 		if (path === undefined) path = "";
@@ -251,8 +247,8 @@ var tobserver = (function (window, document, undefined) {
 		 * @returns {undefined}
 		 */
 		ObserverTree.prototype.runUpdate = function runUpdate(pPath, round) {
-			if (round === undefined) round = new Date().getTime() + "" + Math.random();
-			if (pPath === undefined)
+			if (!round) round = new Date().getTime() + "" + Math.random();
+			if (!pPath)
 				pPath = '';
 			var pathParts = removeEmptyStrings(pPath.split('.'));
 			//update the listener on the current node
@@ -282,7 +278,7 @@ var tobserver = (function (window, document, undefined) {
 		 * @returns {void}
 		 */
 		ObserverTree.prototype.removeListener = function removeListener(pPath, tObserver) {
-			if (typeof (pPath) === "undefined")
+			if (!pPath)
 				pPath = '';
 			var pathParts = pPath.split('.');
 			pathParts = removeEmptyStrings(pathParts);
@@ -290,7 +286,7 @@ var tobserver = (function (window, document, undefined) {
 			if (pathParts.length > 1 || (tObserver !== undefined && pathParts.length > 0)) {
 
 				pathParts.shift();
-				if (typeof (this[PropName]) !== 'undefined')
+				if (this[PropName] !== undefined)
 					this[PropName].removeListener(mergeToPath(pathParts), tObserver);
 			} else
 			if (pathParts.length === 1 && this[pathParts[0]] !== undefined) {
@@ -383,7 +379,7 @@ var tobserver = (function (window, document, undefined) {
 			attr.defaultValue = [];
 			attr.preview = [];
 			for (var i in attr.type) {
-				if (attr.type[i] === "htmllist" || attr.type === "htmloption") {
+				if (attr.type[i] === "htmllist" || attr.type[i] === "htmloption") {
 					attr.defaultValue[i] = element.innerHTML;
 					attr.preview[i] = this.element.innerHTML;
 					this.element.innerHTML = "";
@@ -425,11 +421,11 @@ var tobserver = (function (window, document, undefined) {
 				v = typeof v === "number" ? v + "" : v;
 				var orgData = v;
 
-				filter = this.attr.filter[i] === undefined ? filter : this.attr.filter[i];
-				if (filter !== undefined)
+				filter = !this.attr.filter[i] ? filter : this.attr.filter[i];
+				if (filter)
 					v = filter(v);
-				v = v !== undefined ? v : this.attr.defaultValue;
-				type = this.attr.type[i] === undefined ? type : this.attr.type[i];
+				v = v ? v : this.attr.defaultValue;
+				type = !this.attr.type[i] ? type : this.attr.type[i];
 				switch (type) {
 				case 'innerhtml':
 				case undefined:
@@ -440,6 +436,9 @@ var tobserver = (function (window, document, undefined) {
 						}
 						element.attr.afterUpdate(element);
 					});
+					break;
+				case 'data':
+					this.element.data=v;
 					break;
 				case 'htmllist':
 					this.updateList(v, orgData);
@@ -457,7 +456,7 @@ var tobserver = (function (window, document, undefined) {
 					break;
 				default:
 					this.attr.beforeUpdate(this.element, function (element) {
-						if (element.style[type] === undefined || type == "src") {
+						if (!element.style[type]  || type == "src") {
 							if (element.getAttribute(type) == v)
 								return;
 							element.setAttribute(type, v);
@@ -507,7 +506,7 @@ var tobserver = (function (window, document, undefined) {
 				if (newPosition == -1) {
 					kids[i].innerHTML = kids[i].innerHTML.replace("tobserver", "removedtObserver").trim();
 					this.attr.beforeRemove(kids[i], function (e) {
-						if (e !== undefined) {
+						if (e) {
 							e.remove();
 							i--;
 						}
@@ -535,7 +534,7 @@ var tobserver = (function (window, document, undefined) {
 
 			//appendNewElements
 			var listIndex = 0;
-			if (orgData === undefined) return;
+			if (!orgData) return;
 			for (i = 0; i < data.length; i++) {
 
 				if (displayedElements[listIndex] !== undefined && data[i] == displayedElements[listIndex].item)
@@ -582,7 +581,7 @@ var tobserver = (function (window, document, undefined) {
 		 */
 		StdElementView.prototype.setRoot = function setRoot(element, root) {
 			var attr = getAttr(element);
-			if (attr.path === undefined) attr.path = [""];
+			if (!attr.path) attr.path = [""];
 			for (var i in attr.path) {
 				if (attr.path[i].indexOf(root) == -1)
 					attr.path[i] = root + "." + attr.path[i];
@@ -593,12 +592,12 @@ var tobserver = (function (window, document, undefined) {
 		 *	similar	to findAndUpdatePath, but findAndUpdatePath, only can be used for the initialisation of the object.
 		 */
 		StdElementView.prototype.updateRootPath = function updateRootPath(element, newRootPath, oldRootPath) {
-			if (element === undefined) return;
-			if (newRootPath === undefined) return;
-			if (oldRootPath === undefined) return;
+			if (!element) return;
+			if (!newRootPath) return;
+			if (!oldRootPath) return;
 			var kids = element.children;
 			for (var i in kids) {
-				if (kids[i].attr !== undefined) {
+				if (kids[i].attr) {
 					for (var ii in kids[i].attr.path) {
 						var realOrgPath = kids[i].attr.path[ii].replace(oldRootPath + '.', '');
 						if (kids[i].attr.type == 'htmllist') {
@@ -622,8 +621,9 @@ var tobserver = (function (window, document, undefined) {
 						var type = element.getAttribute("type");
 						if (type !== null && type.toLocaleLowerCase().trim() === "number")
 							value = parseFloat(value);
-						tobserver.set(attr.path[i], element.value);
-
+						if (type !== null && type.toLocaleLowerCase().trim() === "checkbox")
+							value = element.checked;
+						tobserver.set(attr.path[i], value);
 					}
 				}
 			};
@@ -637,23 +637,24 @@ var tobserver = (function (window, document, undefined) {
 	 * @parem e the dom node
 	 */
 	function getAttr(element) {
-		if (element.attr !== undefined) return element.attr;
+		if (element.attr) return element.attr;
 
 		var attr = element.getAttribute === undefined ? null : element.getAttribute("tObserver");
 		if (attr === null) return null;
+		
 		try {
 			attr = eval("({" + attr + "})");
 		} catch (e) {
 			attr = eval("(" + attr + ")");
 		}
-		if (attr.path === undefined) attr.path = [""];
+		if (!attr.path) attr.path = [""];
 		if (!Array.isArray(attr.path)) attr.path = [attr.path];
 		for (var i in attr.path) {
 			attr.path[i] = attr.path[i][attr.path[i].length - 1] == '.' ?
 				attr.path[i].slice(0, attr.path[i].length - 1) : attr.path[i];
 			attr.path[i] = attr.path[i] === '' ? '' : attr.path[i];
 		}
-		attr.type = attr.type===undefined?"innerhtml":attr.type;
+		attr.type = (!attr.type)?"innerhtml":attr.type;
 		if (!Array.isArray(attr.type)) attr.type = [attr.type];
 		for (i in attr.type) {
 			attr.type[i] = attr.type[i].toLowerCase();
