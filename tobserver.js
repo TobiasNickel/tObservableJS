@@ -1,7 +1,7 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.9
+ * @version 0.10
  */
 
 // the only global Tobservable caring about the window object
@@ -15,8 +15,6 @@ var tobserver = (function (window, document, undefined) {
 	 * @param {String} pPath the path of the data that is the current observer is careing about
 	 */
 	function Tobservable(pData, pObserverTree, pPath) {
-		if (!pData)
-			pData = undefined;
 		if (!pObserverTree)
 			pObserverTree = new this.ObserverTree();
 		if (!pPath)
@@ -26,14 +24,69 @@ var tobserver = (function (window, document, undefined) {
 		this.observer = pObserverTree;
 		this.path = pPath;
 	}
-	
-	//remove all "" strings
-	function removeEmptyStrings(array) {
-		while (array.indexOf('') !== -1)
-			array.splice(array.indexOf(''), 1);
-		return array;
+    //Helper Begin
+    // the helper are private methods, used within the framework.
+	/**
+	 * @param {String} path
+	 *      data Path as known
+	 * @param {type} name
+	 *      the name to add
+	 * @returns {String}
+	 */
+    function addNameToPath(path, name) {
+		if(!name)return path;
+        var p = path === "" ? name : path + '.' + name;
+		return p;
+	};
+	//two short helper
+	var returnFirst=function(e){return e;},
+		emptyFunction = function () {},
+		callSecoundF = function (e, f) {
+			f(e);
+		},
+		escapeHTML = (function () {
+			var chr = {
+				'"': '&quot;', '&': '&amp;', "'": '&#39;',
+				'/': '&#47;',  '<': '&lt;',  '>': '&gt;'
+			};
+			return function (text) {
+				if(typeof text !== "string") return text;
+				return text.replace(/[\"&'\/<>]/g, function (a) { return chr[a]; });
+			};
+		}()),
+		//remove all "" strings
+		removeEmptyStrings=function removeEmptyStrings(array) {
+			while (array.indexOf('') !== -1)
+				array.splice(array.indexOf(''), 1);
+			return array;
+		};
+    var tobserver;
+	/**
+	 *  creates an ObjectUpdateView and binds it to the path.
+	 *  @private
+	 *  @param {String} path
+	 *  @param {Object} updateObject
+	 */
+	function updateUpdateObjectComplete(path, updateObject) {
+		var data = tobserver.getData(path);
+		for (var i in data) 
+			if (updateObject[i] !== undefined && data)
+				updateObject[i](path, data);
 	}
-	
+	/**
+	 *  merges a array of names to a path
+	 *  @private
+	 *  @param {Array} array
+	 *      an array containing strings with the names
+	 *  @returns {String}
+	 */
+	function mergeToPath(array) {
+		var out = '';
+		for (var ii = 0; ii < array.length; ii++)
+			out += (out === '' ? '' : '.') + array[ii];
+		return out;
+	};
+    //Helper END
 	/**
 	 * will return a tObservable, that observes the given path
 	 *
@@ -52,11 +105,11 @@ var tobserver = (function (window, document, undefined) {
 				return new Tobservable(
 					this.data === undefined ? undefined : this.data[name],
 					this.observer,
-					this.addNameToPath(this.path, name)
+					addNameToPath(this.path, name)
 				);
 			} else {
 				pathParts.splice(0, 1);
-				return new Tobservable(this.data[name], this.observer, this.addNameToPath(this.path, name)).get(mergeToPath(pathParts));
+				return new Tobservable(this.data[name], this.observer, addNameToPath(this.path, name)).get(mergeToPath(pathParts));
 			}
 		}
 	};
@@ -79,8 +132,7 @@ var tobserver = (function (window, document, undefined) {
 		return data;
 	};
 
-
-	/**
+    /**
 	 * used to set a value or execute a method on the data, 
 	 *	it will notify the observer
 	 * @param {String} pPath
@@ -91,29 +143,52 @@ var tobserver = (function (window, document, undefined) {
 	 *
 	 * @returns {void}
 	 */
-	Tobservable.prototype.set = function (pPath, value, run) {
+	Tobservable.prototype.innerSet = function (pPath, value, run) {
 		var pathParts = (pPath + '').split('.');
 		var name = pPath;
 		if (pathParts.length === 0)
 			return null;
 		if (pathParts.length === 1) {
 			if (run) {
-				var out = this.data[name].apply(this.data, value);
-				this.notify();
-				return out;
+				return this.data[name].apply(this.data, value);
 			} else {
 				if (this.data[name] !== value) {
 					this.data[name] = value;
-					this.notify(name);
 				}
 				return this;
 			}
 		} else {
 			name = pathParts.pop();
-			return this.get(mergeToPath(pathParts)).set(name, value, run);
+			return this.get(mergeToPath(pathParts)).innerSet(name, value, run);
 		}
 	};
-
+    /**
+	 * used to set a value or execute a method on the data, 
+	 *	it will notify the observer
+	 * @param {String} pPath
+	 *      identifing the data to update
+	 * @param {Mixed} value
+	 *      the new value of the described data
+	 * @param {Boolean} run
+	 *     bool, run sais the path describes a method to execute, not  value to set.
+	 * @param {Boolean} online
+	 *     an option, to avoid sending the command to the server.
+	 * @param {Onject} socket
+	 *     an object, that has an emit(name, string), method, that will send the command to the server
+	 * 
+	 * @returns {void}
+	 */
+	Tobservable.prototype.set = function (pPath, value, run,online,socket) {
+		//console.log(socket);
+		if(!run)run=false;
+		if(online===undefined)online=true;
+		
+		var data=tobserver.getData(pPath);
+		if(!run && data===value)return;
+		
+		this.notify(pPath,value,run,online,socket);
+		return this.innerSet(pPath, value, run);
+	};
 	/**
 	 * will apply a function described with the path,
 	 * @param {String} pPath
@@ -126,22 +201,14 @@ var tobserver = (function (window, document, undefined) {
 	Tobservable.prototype.run = function (pPath, value) {
 			this.set(pPath, value, true);
 	};
-	/**
-	 * @param {String} path
-	 *      data Path as known
-	 * @param {type} name
-	 *      the name to add
-	 * @returns {String}
-	 */
-	Tobservable.prototype.addNameToPath = function (path, name) {
-		return path === '' ? name : path + '.' + name;
-	};
+	
 
 	/**
 	 * used to register a opserver on the described path
 	 * (it is not calling the update merthod.)
 	 * @param {Observer} tObserver
-	 *      an object like: {name:"someName",update:function(){}}
+	 *      a function 
+ 	 * 		or an object like: {name:"someName",update:function(){}}
 	 * @param {type} pPath
 	 *      describes the path wherer the observer should be registered
 	 */
@@ -157,6 +224,8 @@ var tobserver = (function (window, document, undefined) {
 	 * remove the described observer
 	 * @param {type} path
 	 *      tha data-path to the observer, where the last part is the name
+	 * @param {view} tObserver
+	 *      the tObserver to remove. can be a simple method or a view-object
 	 */
 	Tobservable.prototype.off = function (path, tObserver) {
 		this.observer.removeListener(path, tObserver);
@@ -164,38 +233,123 @@ var tobserver = (function (window, document, undefined) {
 
 	/**
 	 * used to tell all observer on the given path to update there view
-	 * @param {type} path
+	 *     if fact it is adding commands to the notifiee.path.
+	 * @param {String} pPath
+	 *      identifing the data to update
+	 * @param {Mixed} value
+	 *      the new value of the described data
+	 * @param {Boolean} run
+	 *     bool, run sais the path describes a method to execute, not  value to set.
+	 * @param {Boolean} online
+	 *     an option, to avoid sending the command to the server.
+	 * @param {Onject} socket
+	 *     an object, that has an emit(name, string), method, that will send the command to the server
+	 * 
+	 * @returns {void}
 	 */
-	Tobservable.prototype.notify = function (path, round) {
+	Tobservable.prototype.notify = function (path, data, run, online, socket, round) {
 		if (path === undefined) path = "";
 		if (round === undefined) round = new Date().getTime() + "" + Math.random();
-		path = this.addNameToPath(this.path, path);
-		if (this.notifyee.paths.indexOf(path) !== -1) return;
-		this.notifyee.paths.push(path);
-		clearTimeout(tobserver.notifyee.timeout);
-		tobserver.notifyee.timeout =
-			setTimeout(function () {
-				tobserver.notifyee.notify(round);
-			}, tobserver.notifyee.speed);
+		path = addNameToPath(this.path, path);
+		var index=this.notifyee.commands.indexOfIn(path,"path");
+		if (run || (data!==tobserver.getData("path")) && (index === -1 || !this.notifyee.commands[index].run )){ 
+			this.notifyee.commands.push({
+				path:path,
+				data:data,
+				run:run,
+				online:tobserver.notifyee.onlineMode?online:false,
+				socket:socket
+			});
+			clearTimeout(tobserver.notifyee.timeout);
+			tobserver.notifyee.timeout =
+				setTimeout(function () {
+					tobserver.notifyee.notify(round);
+				}, tobserver.notifyee.speed);
+		}																									
 	};
-
+	Array.prototype.indexOfIn=function(OF,IN){
+		for(var i in this){
+			if(this[i][IN]===OF)return i;
+		}
+		return -1;
+	};
+	Object.defineProperty(Array.prototype, "indexOfIn", { enumerable: false });
+	
 	/**
 	 * used by .notify to cache the update-Paths
 	 * @param {type} path
 	 * @returns {undefined}
 	 */
 	Tobservable.prototype.notifyee = {
+        /**
+         * THE notify method, that is starting the update on the ObserverTree
+         * round will be used, if avoide infinit loops.
+         */
 		notify: function (round) {
-			var paths = this.paths;
-			this.paths = [];
-			for (var i in paths)
-				tobserver.observer.runUpdate(paths[i], this.round);
+			var commands = this.commands;
+			this.commands = [];
+			this.onlineMode=this.onlineLiveMode;
+			for (var i in commands){
+				tobserver.observer.runUpdate(commands[i].path, round);
+				if( this.socket && commands[i].online && !this.isLocal(commands[i].path) ){
+					//console.log("sharePath: ",commands[i].path,JSON.stringify(commands[i].data));
+					if(!commands[i].socket){
+						this.socket.emit("tOmand",JSON.stringify({path:commands[i].path,data:commands[i].data,run:commands[i].run}));
+					} else {
+						commands[i].socket.broadcast.emit('tOmand', JSON.stringify({path:commands[i].path,data:commands[i].data,run:commands[i].run}));
+					}
+				}
+			}
+			this.onlineMode=true;
 		},
-		paths: [],
+		/**
+		 * if onlineMode is false, the actions are not send live to the server.
+		 * this is used internally, to avoid sending changes to the server, 
+		 * that are triggert by the views
+		 */
+		onlineMode:true,
+		/**
+		 * livemode, during an update-Round, the onlineMode is by default set to false. 
+		 * and reactivated afterwards. if the live mode is true, 
+		 * the changes made in the views are also send to the server.
+		 * but this is not nessasary, if all clients use the same data-Views.
+		 */
+		onlineLiveMode:false, 
+        /**
+         * list of notify-orders
+         * {path:path,data:data,run:bool,online:bool,socket:Socket(.io)}
+         */
+		commands: [],// 
+        /**
+         * path that whould not be 
+         */
+		locals:[],
+        /**
+         * Method, that checks, if the update-order need to be send to the server.
+         */
+		isLocal:function(path){
+			var locals=this.locals
+			for(var i in locals){
+				if(path.indexOf(locals[i])===0)return true;
+			}
+			return false;
+		},
+        /**
+         * the socket is a socket.io, socket or namespace
+         * or an jQuery, socket from the utils.
+         */
+		socket:undefined,
+        /**
+         * id of the timeout, for the next notification.
+         * if there are new updates, the cur timeout will be cleared and a new set.
+         */
 		timeout: 0,
+        /**
+         * async rendering, 0 millisecond are enought, you might with that to be a bit slower
+         */
 		speed: 1
 	};
- 
+ 	
 	/**
 	 * @class
 	 * @private
@@ -207,17 +361,24 @@ var tobserver = (function (window, document, undefined) {
 	Tobservable.prototype.ObserverTree = (function () {
 		function ObserverTree(pObserver, pNextPath) {
 			this.$listener = [];
-
 			//run initialisation of observertree
-			if (pNextPath === undefined)
+			if (!pNextPath)
 				pNextPath = '';
-
 			if (pObserver !== undefined)
 				if (pNextPath === '')
 					this.$listener.push(pObserver);
 				else
 					this.addListener(pObserver, pNextPath);
 		}
+        /**
+         * creates a Propertyname, that will hopefilly never match a name, 
+         * used by the application developed using tobservable
+         * so, currently the problem will be, when the developer uses propertynames like
+         * _t__t_name and _t_name what is quite improbable
+         */
+		function toProertyname(name) {
+			return '_t_' + name;
+		};
 		/**
 		 * Only used by the Tobservable to manage the observer
 		 * @param {tobserbable} pObserver
@@ -228,7 +389,7 @@ var tobserver = (function (window, document, undefined) {
 			var pathParts = pPath.split('.');
 			pathParts = removeEmptyStrings(pathParts);
 			if (pathParts.length > 0) {
-				var prop = this.toProertyname(pathParts[0]);
+				var prop = toProertyname(pathParts[0]);
 				pathParts.shift();
 				if (this[prop] === undefined)
 					this[prop] = new ObserverTree(pListener, mergeToPath(pathParts));
@@ -257,13 +418,12 @@ var tobserver = (function (window, document, undefined) {
 					this.$listener[ii].tNotificationRoundNumber = round;
 					this.$listener[ii].update(round, pathParts);
 				}
-				//go through the path
-
+			//go through the path
 			if (pathParts.length > 0) {
-				var PropName = this.toProertyname(pathParts[0]);
-				if (this[PropName] !== undefined) {
-					pathParts.splice(0, 1); //TODO
-					this[PropName].runUpdate(mergeToPath(pathParts), round);
+				var propName = toProertyname(pathParts[0]);
+				if (this[propName] !== undefined) {
+					pathParts.splice(0, 1); 
+					this[propName].runUpdate(mergeToPath(pathParts), round);
 				}
 			} else
 				for (var index in this)
@@ -282,78 +442,27 @@ var tobserver = (function (window, document, undefined) {
 				pPath = '';
 			var pathParts = pPath.split('.');
 			pathParts = removeEmptyStrings(pathParts);
-			var PropName = this.toProertyname(pathParts[0]);
-			if (pathParts.length > 1 || (tObserver !== undefined && pathParts.length > 0)) {
-
+			var PropName = toProertyname(pathParts[0]);
+			if (pathParts.length > 1 || (tObserver && pathParts.length > 0)) {
 				pathParts.shift();
 				if (this[PropName] !== undefined)
 					this[PropName].removeListener(mergeToPath(pathParts), tObserver);
-			} else
-			if (pathParts.length === 1 && this[pathParts[0]] !== undefined) {
+			} else if (pathParts.length === 1 && this[pathParts[0]] !== undefined) {
 				for (var i in this.$listener)
 					if (typeof this.$listener[i].name === 'string' && this.$listener[i].name === PropName)
 						this.$listener.splice(i, 1);
-			} else
-			if (tObserver !== undefined)
+			} else if (tObserver)
 				for (var ii = 0; ii < this.$listener.length; ii++)
 					if (this.$listener[ii] === tObserver || this.$listener[ii].update === tObserver)
 						this.$listener.splice(ii, 1);
 
 		};
-
-		ObserverTree.prototype.toProertyname = function toProertyname(name) {
-			return '_t_' + name;
-		};
 		return ObserverTree;
 	})();
 
-	
-	//two short helper
-	var emptyFunction = function () {},
-		callSecoundF = function (e, f) {
-			f(e);
-		};
-	/**
-	 * get all HTML objects with the given klass, and makes a view with them.
-	 * if also register observer ther on the DOM to create StdViews for the elements that are new Created
-	 */
-	Tobservable.prototype.initDomViews = function () {
-		// liveupdate in the dom
-		tobserver.utils.bindEvent(document, 'DOMNodeInserted', function (ev) {
-			var element = ev.srcElement;
-			tobserver.findTObserver(element);
-		});
-		//document.addEventListener('DOMNodeInserted',);
-		tobserver.utils.bindEvent(document, 'DOMNodeRemoved', function (ev) {
-			if (ev.srcElement !== undefined && ev.srcElement.getAttribute !== undefined)
-				setTimeout(function () {
-					//var element=ev.srcElement;
-					var attr = getAttr(ev.srcElement);
-					if (attr !== undefined && ev.srcElement._tName !== undefined) {
-						var tPath = attr.path;
-						tPath = tPath !== undefined ? tPath : "";
-						tobserver.off(tPath + "." + ev.srcElement._tName);
-					}
-				}, 1000);
-		});
-		this.findTObserver();
-	};
-	Tobservable.prototype.findTObserver = function (element) {
-		if (element === undefined) {
-			element = document.getElementsByTagName("html")[0];
-		}
-		var attr = getAttr(element);
-		var kids = element.children;
-		if (attr === null)
-			for (var s in kids)
-				tobserver.findTObserver(kids[s]);
-		else {
-			element.attr = attr;
-			new tobserver.StdElementView(element, this);
 
-		}
-	};
 
+    
 	/**
 	 * the stdView, that is used for document-nodes
 	 * @class
@@ -367,8 +476,6 @@ var tobserver = (function (window, document, undefined) {
 		 *	it can be a simple view, or a htmlList-View.
 		 */
 		function StdElementView(element, tobserver) {
-			//todo: parse the tobserver-attr as {JSON}
-			//var attr=element.getAttribute("tObserver");
 			var attr = getAttr(element);
 			if (attr === null) return;
 			if (element._tName !== undefined) return;
@@ -379,7 +486,7 @@ var tobserver = (function (window, document, undefined) {
 			attr.defaultValue = [];
 			attr.preview = [];
 			for (var i in attr.type) {
-				if (attr.type[i] === "htmllist" || attr.type[i] === "htmloption") {
+				if (attr.type[i].toLowerCase() === "htmllist" || attr.type[i].toLowerCase() === "htmloption") {
 					attr.defaultValue[i] = element.innerHTML;
 					attr.preview[i] = this.element.innerHTML;
 					this.element.innerHTML = "";
@@ -407,27 +514,63 @@ var tobserver = (function (window, document, undefined) {
 				tobserver.on(attr.path[i], this);
 			this.update();
 		}
+        /**
+		 * @parem e the dom node
+		 */
+		function getAttr(element) {
+			if (element.attr) return element.attr;
+
+			var attr = element.getAttribute === undefined ? null : element.getAttribute("tObserver");
+			if (attr === null) return null;
+
+			try {
+				attr = eval("({" + attr + "})");// default case without breaces
+			} catch (e) {
+				try {
+					attr = eval("(" + attr + ")");// optional breaces
+				} catch (e) {
+					attr={ path: eval('"' + attr + '"') };// hand over a string, containing a path
+				}
+			}
+
+			if (!attr.path) attr.path = [""];
+			if (!Array.isArray(attr.path)) attr.path = [attr.path];
+			for (var i in attr.path) {
+				attr.path[i] = attr.path[i][attr.path[i].length - 1] == '.' ?
+					attr.path[i].slice(0, attr.path[i].length - 1) : attr.path[i];
+				attr.path[i] = attr.path[i] === '' ? '' : attr.path[i];
+			}
+			attr.type = (!attr.type)?"innerhtml":attr.type;
+			if (!Array.isArray(attr.type)) attr.type = [attr.type];
+			if (!Array.isArray(attr.filter)) attr.filter = [attr.filter];
+			element.attr = attr;
+			return attr;
+		}
+        
 		/**
 		 *	the standard updatemethod, called by the tObserver
 		 */
 		StdElementView.prototype.update = function () {
 			var type;
-			var filter;
+			var filter=returnFirst;
 			var maxLen = this.attr.path.length;
 			if (maxLen < this.attr.type.length) maxLen = this.attr.type.length;
 			for (var i = 0; i < maxLen; i++) {
 				var path = this.attr.path[i] === undefined ? path : this.attr.path[i];
+				type = !this.attr.type[i] ? type : this.attr.type[i];
+				filter=(type==="value"||type==="data") ? returnFirst : escapeHTML;
 				var v = tobserver.getData(path);
 				v = typeof v === "number" ? v + "" : v;
 				var orgData = v;
 
-				filter = !this.attr.filter[i] ? filter : this.attr.filter[i];
-				if (filter)
-					v = filter(v);
-				v = v ? v : this.attr.defaultValue;
+				filter = this.attr.filter[i] ? this.attr.filter[i] : filter ;
+				v = filter(v);
+				v = v!==undefined ? v : this.attr.defaultValue;
 				type = !this.attr.type[i] ? type : this.attr.type[i];
 				switch (type) {
 				case 'innerhtml':
+				case 'innerHtml':
+				case 'innerHTML':
 				case undefined:
 					this.attr.beforeUpdate(this.element, function (element) {
 						if (element.innerHTML != v) {
@@ -441,9 +584,11 @@ var tobserver = (function (window, document, undefined) {
 					this.element.data=v;
 					break;
 				case 'htmllist':
+				case 'htmlList':
 					this.updateList(v, orgData);
 					break;
 				case 'htmloption':
+				case 'htmlOption':
 					this.updateOption(v, orgData);
 					break;
 				case 'value':
@@ -456,7 +601,7 @@ var tobserver = (function (window, document, undefined) {
 					break;
 				default:
 					this.attr.beforeUpdate(this.element, function (element) {
-						if (!element.style[type]  || type == "src") {
+						if (!element.style[type] === undefined  || type == "src") {
 							if (element.getAttribute(type) == v)
 								return;
 							element.setAttribute(type, v);
@@ -470,7 +615,7 @@ var tobserver = (function (window, document, undefined) {
 				}
 			}
 		};
-		StdElementView.prototype.updateOption = function updateList(data, orgData) {
+		StdElementView.prototype.updateOption = function(data, orgData) {
 			if (data === false) {
 				this.element.innerHTML = "";
 				this.element.display = "none";
@@ -492,7 +637,7 @@ var tobserver = (function (window, document, undefined) {
 		/**
 		 *	the speaciel bevavior of the htmlList-Views
 		 */
-		StdElementView.prototype.updateList = function updateList(data, orgData) {
+		StdElementView.prototype.updateList = function(data, orgData) {
 			if (this.displayedOrdData != orgData)
 				this.element.innerHTML = "";
 			var i = 0;
@@ -554,7 +699,7 @@ var tobserver = (function (window, document, undefined) {
 							displayedElements[listIndex].parentNode.insertBefore(kid, displayedElements[listIndex]);
 						else this.element.appendChild(kid);
 
-						tobserver.findTObserver(kid);
+						tobserver.StdElementView.findTObserver(kid);
 						this.attr.beforeAdd(kid, data[i]);
 						this.attr.afterAdd(kid, data[i]);
 					}
@@ -566,7 +711,7 @@ var tobserver = (function (window, document, undefined) {
 		/**
 		 *	if the Path for the a List-Item has changed, this function will update the childs
 		 */
-		StdElementView.prototype.findAndUpdatePath = function findAndUpdatePath(element, root) {
+		StdElementView.prototype.findAndUpdatePath = function(element, root) {
 			var attr = getAttr(element);
 			var kids = element.children;
 			if (attr === null)
@@ -591,7 +736,7 @@ var tobserver = (function (window, document, undefined) {
 		/**
 		 *	similar	to findAndUpdatePath, but findAndUpdatePath, only can be used for the initialisation of the object.
 		 */
-		StdElementView.prototype.updateRootPath = function updateRootPath(element, newRootPath, oldRootPath) {
+		StdElementView.prototype.updateRootPath = function(element, newRootPath, oldRootPath) {
 			if (!element) return;
 			if (!newRootPath) return;
 			if (!oldRootPath) return;
@@ -600,7 +745,7 @@ var tobserver = (function (window, document, undefined) {
 				if (kids[i].attr) {
 					for (var ii in kids[i].attr.path) {
 						var realOrgPath = kids[i].attr.path[ii].replace(oldRootPath + '.', '');
-						if (kids[i].attr.type == 'htmllist') {
+						if (kids[i].attr.type.toLowerCase() == 'htmllist') {
 							this.updateRootPath(kids[i], realOrgPath + "." + realOrgPath, oldRootPath + "." + realOrgPath);
 						}
 						tobserver.off(kids[i].attr.path[ii] + "." + kids[i]._tName);
@@ -630,39 +775,61 @@ var tobserver = (function (window, document, undefined) {
 			element.addEventListener("change", change);
 			element.addEventListener("keyup", change);
 		};
+		
+		/**
+		 * get all HTML objects with the given klass, and makes a view with them.
+		 * if also register observer ther on the DOM to create StdViews for the elements that are new Created
+		 */
+		StdElementView.initDomViews = function() {
+			var html=document.getElementsByTagName("html")[0];
+			// liveupdate in the dom
+			tobserver.utils.bindEvent(html, 'DOMNodeInserted', function (ev) {
+				var element = ev.srcElement?ev.srcElement:ev.target;
+				StdElementView.findTObserver(element);
+			});
+			//document.addEventListener('DOMNodeInserted',);
+			tobserver.utils.bindEvent(html, 'DOMNodeRemoved', function (ev) {
+				var element = ev.srcElement?ev.srcElement:ev.target;
+				if (element !== undefined && element.getAttribute !== undefined)
+					setTimeout(function () {
+						var attr = getAttr(element);
+						if (attr !== undefined && element._tName !== undefined) {
+							var tPath = attr.path;
+							tPath = tPath !== undefined ? tPath : "";
+							tobserver.off(tPath + "." + element._tName);
+						}
+					}, 1000);
+			});
+			this.findTObserver();
+		};
+        /**
+         * searches for tobserver on the HTML.
+         * tObserver are html-elements that have an tobserver-Attribute, 
+         * with a structure described on the docu.
+         * 
+         * @param {htmlNode} element    
+         *      the Element where to analyse all childs. 
+         *      if undefined the html-node is taken.
+         */
+		StdElementView.findTObserver = function (element) {
+			if (element === undefined) {
+				element = document.getElementsByTagName("html")[0];
+			}
+			var attr = getAttr(element);
+			var kids = element.children;
+			if (attr === null)
+				for (var s in kids)
+					StdElementView.findTObserver(kids[s]);
+			else {
+				element.attr = attr;
+				new tobserver.StdElementView(element, tobserver);
+
+			}
+		};
+
 		return StdElementView;
 	}();
 
-	/**
-	 * @parem e the dom node
-	 */
-	function getAttr(element) {
-		if (element.attr) return element.attr;
-
-		var attr = element.getAttribute === undefined ? null : element.getAttribute("tObserver");
-		if (attr === null) return null;
-		
-		try {
-			attr = eval("({" + attr + "})");
-		} catch (e) {
-			attr = eval("(" + attr + ")");
-		}
-		if (!attr.path) attr.path = [""];
-		if (!Array.isArray(attr.path)) attr.path = [attr.path];
-		for (var i in attr.path) {
-			attr.path[i] = attr.path[i][attr.path[i].length - 1] == '.' ?
-				attr.path[i].slice(0, attr.path[i].length - 1) : attr.path[i];
-			attr.path[i] = attr.path[i] === '' ? '' : attr.path[i];
-		}
-		attr.type = (!attr.type)?"innerhtml":attr.type;
-		if (!Array.isArray(attr.type)) attr.type = [attr.type];
-		for (i in attr.type) {
-			attr.type[i] = attr.type[i].toLowerCase();
-		}
-		if (!Array.isArray(attr.filter)) attr.filter = [attr.filter];
-		element.attr = attr;
-		return attr;
-	}
 	Tobservable.prototype.utils = {
 		stdViewBehavior: function () {
 			return {
@@ -674,7 +841,12 @@ var tobserver = (function (window, document, undefined) {
 				afterUpdate: emptyFunction
 			};
 		}(),
+        //LINK VIEW BEGIN
 		/**
+		 * linkes two paths
+		 * is used, when on both paths should be stored the same object.
+		 * it is not updating the data (because this is happend automaticly)
+		 * but it makes sure, that the observer on both sites are activated.
 		 * @param {String} sourcePath
 		 * @param {String} destPath
 		 */
@@ -684,6 +856,12 @@ var tobserver = (function (window, document, undefined) {
 
 		},
 		/**
+		 * linkes two paths, where one the secound path is an array, 
+		 * that contains the object under the first path.
+		 * 
+		 * is used, when on both paths should be stored the same object.
+		 * it is not updating the data (because this is happend automaticly)
+		 * but it makes sure, that the observer on both sites are activated.
 		 * @param {String} elementPath
 		 * @param {String} destPath
 		 */
@@ -693,27 +871,36 @@ var tobserver = (function (window, document, undefined) {
 		},
 		/**
 		 *  constructor for LinkView
+		 * it updates the path of destPath.
+		 * and can be registered on multiple other paths
 		 * @param {String} destPath
 		 */
 		LinkView: function LinkView(destPath) {
 			this.update = function updateLinkView(round) {
-				tobserver.notify(destPath, round);
+				var data=tobserver.getData(destPath);
+				tobserver.notify(destPath, data,false,true,undefined,round);
+				//(path, data, run, online, socket, round)
 			};
 		},
 		/**
 		 *  constructor for LinkToArrayView
+		 * same as linkView, but it points on an Array. that contains the element of elementPath.
 		 * @param {String} elementPath
 		 * @param {String} arrayPath
 		 */
 		LinkToArrayView: function LinkToArrayView(elementPath, arrayPath) {
-			this.update = function updateLinkView(round) {
+			this.update = function updateLinkToArrayView(round) {
 				var sourceData = tobserver.getData(elementPath);
 				var array = tobserver.getData(arrayPath);
-				tobserver.notify(arrayPath + "." + array.indexOf(sourceData), round);
+				var arrayElementPath=arrayPath + "." + array.indexOf(sourceData);
+				var arrayElementData = tobserver.getData(arrayElementPath);
+				tobserver.notify(arrayElementPath,arrayElementData,false,true,undefined, round);
 			};
 		},
 		/**
 		 *  constructor for LinkFromArrayView
+		 * the link from an array to an object, the method only notifies the elementPath-Views, 
+		 * if the depending element has changed, not if anything changed(smart)
 		 * @param {String} elementPath
 		 * @param {String} arrayPath
 		 */
@@ -721,15 +908,19 @@ var tobserver = (function (window, document, undefined) {
 			this.update = function updateLinkView(round, pathParts) {
 				var sourceData = tobserver.getData(elementPath);
 				var array = tobserver.getData(arrayPath);
-				if (pathParts[0] !== undefined) {
+                var index=array.indexOf(sourceData);
+				if (pathParts[0] !== undefined && index==pathParts[0]) {
 					if (array[pathParts[0]] !== sourceData) {
-						tobserver.notify(elementPath, round);
+						tobserver.notify(elementPath,sourceData,false,true,undefined, round);
 					}
-				} else tobserver.notify(elementPath, round);
+				} //else tobserver.notify(elementPath,sourceData,false,true,undefined, round);
 			};
 		},
+        //LINK VIEW END
+        //UPDATE VIEW BEGIN
 		/**
 		 *  constructor for ArrayUpdateView
+		 * uses an update-Object, as view, for each element in the array.
 		 *  @param {String} arrayPath
 		 *  @param {Object} updateObject
 		 */
@@ -739,7 +930,8 @@ var tobserver = (function (window, document, undefined) {
 					var index = nextPathparts.splice(0, 1);
 					var paramName = nextPathparts.splice(0, 1);
 					var newSetValue = tobserver.getData(arrayPath + "." + index);
-					updateObject[paramName](arrayPath + "." + index, newSetValue, nextPathparts);
+					if(newSetValue && updateObject[paramName])
+						updateObject[paramName](arrayPath + "." + index, newSetValue, nextPathparts);
 				} else {
 					var array = tobserver.getData(arrayPath);
 					for (var i = 0; i < array.length; i++)
@@ -760,6 +952,7 @@ var tobserver = (function (window, document, undefined) {
 		},
 		/**
 		 *  constructor for ObjectUpdateView
+		 * uses an update-Object, as view, for the object under the path.
 		 *  @param {String} objectPath
 		 *  @param {Object} updateObject
 		 */
@@ -768,7 +961,8 @@ var tobserver = (function (window, document, undefined) {
 				if (nextPathparts[0] !== undefined) {
 					var paramName = nextPathparts.splice(0, 1);
 					var newSetValue = tobserver.getData(objectPath);
-					updateObject[paramName](objectPath, newSetValue, nextPathparts);
+					if(newSetValue)
+						updateObject[paramName](objectPath, newSetValue, nextPathparts);
 				} else updateUpdateObjectComplete(objectPath, updateObject);
 			};
 		},
@@ -781,8 +975,10 @@ var tobserver = (function (window, document, undefined) {
 			tobserver.on(path, new tobserver.utils.ObjectUpdateView(path, updateObject));
 			updateUpdateObjectComplete(path, updateObject);
 		},
+        //UPDATE VIEW END
 		/**
 		 *  the history modul from backbone, changed, that it just updates an URL property on via tobserver.
+		 * requires jQuery
 		 * @param {String} elementPath
 		 * @param {String} arrayPath
 		 */
@@ -1129,8 +1325,6 @@ var tobserver = (function (window, document, undefined) {
 		 * @param {String} arrayPath
 		 */
 		router: (function (root) {
-			"use strict";
-
 			function Grapnel() {
 				this.events = []; // Event Listeners
 				this.params = []; // Named parameters
@@ -1242,44 +1436,53 @@ var tobserver = (function (window, document, undefined) {
 				el.addEventListener(eventName, eventHandler, false);
 			else if (el.attachEvent)
 				el.attachEvent('on' + eventName, eventHandler);
+		},
+		/**
+		 * set a socket, an jQuerySocket or SocketIO-Socket or SocketIO-Namespace.
+		 * the socket will be used to tell the server all the changes that are made on the data.
+		 */
+		setSocket:function(socket){
+			tobserver.notifyee.socket=socket;
+			socket.on('tOmand', function(msg){
+				try{
+					var msgO=JSON.parse(msg);
+					if(!tobserver.notifyee.isLocal(msgO.path))
+						tobserver.set(
+							msgO.path,
+							msgO.data,
+							msgO.run,
+							false
+						);
+				}catch(e){}
+			});
+		},
+		/**
+		 * An JQuerySocket - class, that can be used as a socket. 
+		 * requires jQuery do send all changes on the data to the server,
+		 * for example an php-server. on node it is recommented to use socket.io
+		 * 
+		 */
+		jQuerySocket:function JQuerySocket(file){
+			this.emit=function emit(name,data){
+				$.post(file,{name:name,data:data});
+			}
 		}
 	};
 
-	/**
-	 *  creates an ObjectUpdateView and binds it to the path.
-	 *  @private
-	 *  @param {String} path
-	 *  @param {Object} updateObject
-	 */
-	function updateUpdateObjectComplete(path, updateObject) {
-		var data = tobserver.getData(path);
-		for (var i in data) {
-			if (updateObject[i] !== undefined)
-				updateObject[i](path, data);
-		}
-	}
-	/**
-	 *  merges a array of names to a path
-	 *  @private
-	 *  @param {Array} array
-	 *      an array containing strings with the names
-	 *  @returns {String}
-	 */
-	var mergeToPath = function (array) {
-		var out = '';
-		for (var ii = 0; ii < array.length; ii++)
-			out += (out === '' ? '' : '.') + array[ii];
-		return out;
-	};
 
 	var tobserver = new Tobservable(window);
 
 	return tobserver;
-})(window, document);
-
-tobserver.utils.bindEvent(window, 'load', function () {
-	var style = document.createElement("style");
-	style.innerHTML = ".tobserverlistitem{margin:0px;	padding:0px;}";
-	document.getElementsByTagName("head")[0].appendChild(style);
-	tobserver.initDomViews();
-});
+})(typeof window==="object"?window:{},typeof document==="object"?document:{});
+   
+// Window or AMD-module
+if(typeof module === 'object'){
+	module.exports = tobserver;
+}else if(window instanceof Window){
+	tobserver.utils.bindEvent(window, 'load', function () {
+		var style = document.createElement("style");
+		style.innerHTML = ".tobserverlistitem{margin:0px;	padding:0px;}";
+		document.getElementsByTagName("head")[0].appendChild(style);
+		tobserver.StdElementView.initDomViews();
+	});
+}
