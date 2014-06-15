@@ -745,7 +745,7 @@ var tobserver = (function (window, document, undefined) {
 				if (kids[i].attr) {
 					for (var ii in kids[i].attr.path) {
 						var realOrgPath = kids[i].attr.path[ii].replace(oldRootPath + '.', '');
-						if (kids[i].attr.type.toLowerCase() == 'htmllist') {
+						if (kids[i].attr.type[ii].toLowerCase() == 'htmllist') {
 							this.updateRootPath(kids[i], realOrgPath + "." + realOrgPath, oldRootPath + "." + realOrgPath);
 						}
 						tobserver.off(kids[i].attr.path[ii] + "." + kids[i]._tName);
