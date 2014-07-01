@@ -108,4 +108,6 @@ An additional thanks need to go to two sources where took some code from. Backbo
 
 Thanks for looking at tObservableJS please leave a comment, for further development.
 
-Tobias Nickel  ![alt text](https://avatars1.githubusercontent.com/u/4189801?s=150) 
+Tobias Nickel  
+
+![alt text](https://avatars1.githubusercontent.com/u/4189801?s=150) 
