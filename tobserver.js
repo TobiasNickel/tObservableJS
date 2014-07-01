@@ -1,8 +1,75 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.10
+ * @version 0.11
  */
+
+/**
+ * Object, that contains methods, that can not run in StrictMode
+ */
+var tObserverNoStricts=(function(){  
+    //for shorter htmlArrStrings so they don't need to be handed over as a string
+    var styleKeys=(function(){
+        var hOption="htmloption",
+            hList="htmllist",
+            iHtml="innerhtml",
+            v="value",
+            disabled="disables";
+        var out={
+            option:hOption,OPTION:hOption,Option:hOption,
+            htmlOption:hOption,htmlOPTION:hOption,htmloption:hOption,
+            list:hList,List:hList,LIST:hList,
+            htmlList:hList,htmllist:hList,htmlLIST:hList,
+            html:iHtml,Html:iHtml,HTML:iHtml,
+            innerHTML:iHtml,innerhtml:iHtml,innerHtml:iHtml,
+            value:v,Value:v,VALUE:v,
+            disabled:disabled,DISABLED:disabled,Disabled:disabled
+        };
+        var style = document.createElement('div').style;
+        for(var i in style){
+            out[i]=i;
+            out[i.toUpperCase()]=i;
+            out[i.toLowerCase()]=i;
+        }
+        return out;
+    })();
+    
+    /**
+     *  gets and interpreted the attr attribute from the element, caches the value and returns the value.
+     *  @parem element the dom node
+     */
+    function getAttr_sloppy(element) {
+        if (element.attr) return element.attr;
+
+        var attr = element.getAttribute === undefined ? null : element.getAttribute("tObserver");
+        if (attr === null) return null;
+        with(styleKeys){
+            try {
+                attr = eval("({" + attr + "})"); // default case without breaces
+            } catch (e) {
+                try {
+                    attr = eval("(" + attr + ")");// optional breaces
+                } catch (e) {
+                    attr={ path: attr };// hand over a string, containing a path
+                }
+            }
+        }
+        if (!attr.path) attr.path = [""];
+        if (!Array.isArray(attr.path)) attr.path = [attr.path];
+        for (var i in attr.path) {
+            attr.path[i] = attr.path[i][attr.path[i].length - 1] == '.' ?
+                attr.path[i].slice(0, attr.path[i].length - 1) : attr.path[i];
+            attr.path[i] = attr.path[i] === '' ? '' : attr.path[i];
+        }
+        attr.type = (!attr.type)?"innerhtml":attr.type;
+        if (!Array.isArray(attr.type)) attr.type = [attr.type];
+        if (!Array.isArray(attr.filter)) attr.filter = [attr.filter];
+        element.attr = attr;
+        return attr;
+    }
+    return {getAttr:getAttr_sloppy};
+})();
+
 
 // the only global Tobservable caring about the window object
 var tobserver = (function (window, document, undefined) {
@@ -252,7 +319,7 @@ var tobserver = (function (window, document, undefined) {
 		if (round === undefined) round = new Date().getTime() + "" + Math.random();
 		path = addNameToPath(this.path, path);
 		var index=this.notifyee.commands.indexOfIn(path,"path");
-		if (run || (data!==tobserver.getData("path")) && (index === -1 || !this.notifyee.commands[index].run )){ 
+		if (run || (data!==tobserver.getData(path)) && (index === -1 || !this.notifyee.commands[index].run )){ 
 			this.notifyee.commands.push({
 				path:path,
 				data:data,
@@ -267,9 +334,9 @@ var tobserver = (function (window, document, undefined) {
 				}, tobserver.notifyee.speed);
 		}																									
 	};
-	Array.prototype.indexOfIn=function(OF,IN){
+	Array.prototype.indexOfIn=function(needle,propName){
 		for(var i in this){
-			if(this[i][IN]===OF)return i;
+			if(this[i][propName]===needle)return i;
 		}
 		return -1;
 	};
@@ -486,7 +553,7 @@ var tobserver = (function (window, document, undefined) {
 			attr.defaultValue = [];
 			attr.preview = [];
 			for (var i in attr.type) {
-				if (attr.type[i].toLowerCase() === "htmllist" || attr.type[i].toLowerCase() === "htmloption") {
+				if (attr.type[i].toLowerCase() === "htmllist" || attr.type[i].toLowerCase() === "htmloption" || attr.type[i].toLowerCase() === "innerhtml" ) {
 					attr.defaultValue[i] = element.innerHTML;
 					attr.preview[i] = this.element.innerHTML;
 					this.element.innerHTML = "";
@@ -514,39 +581,8 @@ var tobserver = (function (window, document, undefined) {
 				tobserver.on(attr.path[i], this);
 			this.update();
 		}
-        /**
-		 * @parem e the dom node
-		 */
-		function getAttr(element) {
-			if (element.attr) return element.attr;
-
-			var attr = element.getAttribute === undefined ? null : element.getAttribute("tObserver");
-			if (attr === null) return null;
-
-			try {
-				attr = eval("({" + attr + "})");// default case without breaces
-			} catch (e) {
-				try {
-					attr = eval("(" + attr + ")");// optional breaces
-				} catch (e) {
-					attr={ path: eval('"' + attr + '"') };// hand over a string, containing a path
-				}
-			}
-
-			if (!attr.path) attr.path = [""];
-			if (!Array.isArray(attr.path)) attr.path = [attr.path];
-			for (var i in attr.path) {
-				attr.path[i] = attr.path[i][attr.path[i].length - 1] == '.' ?
-					attr.path[i].slice(0, attr.path[i].length - 1) : attr.path[i];
-				attr.path[i] = attr.path[i] === '' ? '' : attr.path[i];
-			}
-			attr.type = (!attr.type)?"innerhtml":attr.type;
-			if (!Array.isArray(attr.type)) attr.type = [attr.type];
-			if (!Array.isArray(attr.filter)) attr.filter = [attr.filter];
-			element.attr = attr;
-			return attr;
-		}
         
+        var getAttr=tObserverNoStricts.getAttr;
 		/**
 		 *	the standard updatemethod, called by the tObserver
 		 */
@@ -565,13 +601,14 @@ var tobserver = (function (window, document, undefined) {
 
 				filter = this.attr.filter[i] ? this.attr.filter[i] : filter ;
 				v = filter(v);
-				v = v!==undefined ? v : this.attr.defaultValue;
+				v = v!==undefined ? v : this.attr.defaultValue[i];
 				type = !this.attr.type[i] ? type : this.attr.type[i];
 				switch (type) {
 				case 'innerhtml':
 				case 'innerHtml':
 				case 'innerHTML':
 				case undefined:
+                    if(!v)v=this.attr.defaultValue[i];
 					this.attr.beforeUpdate(this.element, function (element) {
 						if (element.innerHTML != v) {
 							element.innerHTML = v;
@@ -601,7 +638,9 @@ var tobserver = (function (window, document, undefined) {
 					break;
 				default:
 					this.attr.beforeUpdate(this.element, function (element) {
-						if (!element.style[type] === undefined  || type == "src") {
+                        if(type == "disabled"){
+                            element.disabled=v;
+                        } else if (!(element.style[type] === undefined)  || type == "src" || type == "class") {
 							if (element.getAttribute(type) == v)
 								return;
 							element.setAttribute(type, v);
@@ -616,7 +655,7 @@ var tobserver = (function (window, document, undefined) {
 			}
 		};
 		StdElementView.prototype.updateOption = function(data, orgData) {
-			if (data === false) {
+			if (data == false || data==undefined ||data==null) {
 				this.element.innerHTML = "";
 				this.element.display = "none";
 			} else {
@@ -893,8 +932,7 @@ var tobserver = (function (window, document, undefined) {
 				var sourceData = tobserver.getData(elementPath);
 				var array = tobserver.getData(arrayPath);
 				var arrayElementPath=arrayPath + "." + array.indexOf(sourceData);
-				var arrayElementData = tobserver.getData(arrayElementPath);
-				tobserver.notify(arrayElementPath,arrayElementData,false,true,undefined, round);
+				tobserver.notify(arrayElementPath,"someCrapthatWIllneverBeAValue5142f7d9aj8496547c6fc6gca37f215cf",false,true,undefined, round);
 			};
 		},
 		/**
@@ -911,9 +949,9 @@ var tobserver = (function (window, document, undefined) {
                 var index=array.indexOf(sourceData);
 				if (pathParts[0] !== undefined && index==pathParts[0]) {
 					if (array[pathParts[0]] !== sourceData) {
-						tobserver.notify(elementPath,sourceData,false,true,undefined, round);
+						tobserver.notify(elementPath,"someCrapthatWIllneverBeAValue5142f7d9ja8496547g6fc65ca37f215cf",false,true,undefined, round);
 					}
-				} //else tobserver.notify(elementPath,sourceData,false,true,undefined, round);
+				}
 			};
 		},
         //LINK VIEW END
@@ -1474,7 +1512,7 @@ var tobserver = (function (window, document, undefined) {
 
 	return tobserver;
 })(typeof window==="object"?window:{},typeof document==="object"?document:{});
-   
+
 // Window or AMD-module
 if(typeof module === 'object'){
 	module.exports = tobserver;
