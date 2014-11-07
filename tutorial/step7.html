@@ -6,7 +6,7 @@
 		//initialisation of the app-data in global scope
 		var app={title:"Imagegalleries"};
 		app.galleries=[
-			{
+			{	type:"gallery",
 				gName:"fh-stralsund",
 				images:[
 					{iName:"Library",    iPath:"static/Bibo.jpg"     },
@@ -14,7 +14,7 @@
 					{iName:"Mensa",         iPath:"static/mensa.jpg"    }
 				]
 			},
-			{
+			{	type:"gallery",
 				gName:"carweels",
 				images:[
 					{iName:"Korean",      iPath:"static/koreaner.jpg" },
@@ -49,7 +49,7 @@
 			<h2 tobserver="path:'gName'"></h2>
 			<div tObserver="path:'images',type:'htmlList',afterAdd:function(element){
 				element.style.width='0px';
-				$element=jQuery(element); 
+				var $element=jQuery(element); 
 				$element.animate({width:'300px'},{duration :500,easing:'linear'});
 			}">
 				<div class="image">
@@ -57,6 +57,7 @@
 					<p tobserver="path:'iName'"></p>
 				</div>
 			</div>
+				
 		</div>
 	</div>
 </body>

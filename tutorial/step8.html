@@ -16,7 +16,12 @@
 			},
 			{	type:"post",
 				headline:"lorem ipsum",
-				text:"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
+				text:"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore"
+                    +" et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren,"
+                    +" no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr,"
+                    +" sed diam nonumy eirmod tempor invidunt ut labore et"
+                    +" dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum."
+                    +" Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 			},
 			{	type:'gallery',
 				gName:"carweels",
@@ -47,15 +52,16 @@
 
 	<input type="button" value="add Sportshall" onclick="addLibrary()">
 	<input type="button" value="sort weels" onclick="sortWeels()">
-	
-	<div tObserver="path:'app.galleries',type:'htmlList'" class="gallerieList">
-		<div tobserver="path:'',type:'htmlOption',filter:function(v){return (v.type=='gallery');}">
+
+	<div tObserver="path:'app.galleries',type:htmlList" class="gallerieList">
+		<div tobserver="path:'',type:htmlOption,filter:function(v){return (v.type=='gallery');}">
 			<div class="gallery">
 				<h2 tobserver="path:'gName'"></h2>
-				<div tObserver="path:'images',type:'htmlList',afterAdd:function(element){
-					element.style.width='0px';
-					$element=jQuery(element); 
-					$element.animate({width:'300px'},{duration :500,easing:'linear'});
+				<div tObserver="path:'images',type:htmlList,afterAdd:function(element){
+					var $element=jQuery(element);
+						$element.width('0px');
+						console.log(	$element[0]);
+					$element.animate({width:'300px'},{duration :1000,easing:'linear'});
 				}">
 					<div class="image">
 						<img tobserver="path:'iPath',type:'src'" />
@@ -64,7 +70,7 @@
 				</div>
 			</div>
 		</div>
-		<div tobserver="path:'',type:'htmlOption',filter:function(v){return (v.type=='post');}">
+		<div tobserver="path:'',type:htmlOption,filter:function(v){return (v.type=='post');}">
 			<div class="gallery">
 				<h2 tobserver="path:'headline'"></h2>
 				<p tobserver="path:'text'"></p>

@@ -1,29 +1,35 @@
 /**
  * @fileOverview
  * @author Tobias Nickel
- * @version 0.12
+ * @version 0.11
  */
 
 /**
  * Object, that contains methods, that can not run in StrictMode
  */
-var tObserverNoStricts=(function(){  
+var tObserverNoStricts=(function(){
+    //view types
+    var vt_hOption=8,//"htmloption",
+        vt_hList=1,//"htmllist",
+        vt_iHtml=2,//"innerhtml",
+        vt_v=3,//"value",
+        vt_disabled=4,
+        vt_data=5,//"disables";
+        vt_src=6,
+        vt_class=7;
     //for shorter htmlArrStrings so they don't need to be handed over as a string
     var styleKeys=(function(){
-        var hOption="htmloption",
-            hList="htmllist",
-            iHtml="innerhtml",
-            v="value",
-            disabled="disables";
         var out={
-            option:hOption,OPTION:hOption,Option:hOption,
-            htmlOption:hOption,htmlOPTION:hOption,htmloption:hOption,
-            list:hList,List:hList,LIST:hList,
-            htmlList:hList,htmllist:hList,htmlLIST:hList,
-            html:iHtml,Html:iHtml,HTML:iHtml,
-            innerHTML:iHtml,innerhtml:iHtml,innerHtml:iHtml,
-            value:v,Value:v,VALUE:v,
-            disabled:disabled,DISABLED:disabled,Disabled:disabled
+            option:vt_hOption,OPTION:vt_hOption,Option:vt_hOption,
+            htmlOption:vt_hOption,htmlOPTION:vt_hOption,htmloption:vt_hOption,
+            list:vt_hList,List:vt_hList,LIST:vt_hList,
+            htmlList:vt_hList,htmllist:vt_hList,htmlLIST:vt_hList,
+            html:vt_iHtml,Html:vt_iHtml,HTML:vt_iHtml,
+            innerHTML:vt_iHtml,innerhtml:vt_iHtml,innerHtml:vt_iHtml,
+            value:vt_v,Value:vt_v,VALUE:vt_v,
+            disabled:vt_disabled,DISABLED:vt_disabled,Disabled:vt_disabled,
+			src:vt_src,SRC:vt_src,
+            data:vt_data
         };
         var style = document.createElement('div').style;
         for(var i in style){
@@ -33,7 +39,7 @@ var tObserverNoStricts=(function(){
         }
         return out;
     })();
-    
+
     /**
      *  gets and interpreted the attr attribute from the element, caches the value and returns the value.
      *  @parem element the dom node
@@ -48,21 +54,35 @@ var tObserverNoStricts=(function(){
                 attr = eval("({" + attr + "})"); // default case without breaces
             } catch (e) {
                 try {
-                    attr = eval("(" + attr + ")");// optional breaces
+                    attr = eval("(" + attr + ")"); // optional breaces
                 } catch (e) {
                     attr={ path: attr };// hand over a string, containing a path
                 }
             }
         }
+        if(typeof attr==="string")
+            attr={path:attr};
         if (!attr.path) attr.path = [""];
         if (!Array.isArray(attr.path)) attr.path = [attr.path];
         for (var i in attr.path) {
+            //when there is a point at the end, remove it.
             attr.path[i] = attr.path[i][attr.path[i].length - 1] == '.' ?
                 attr.path[i].slice(0, attr.path[i].length - 1) : attr.path[i];
-            attr.path[i] = attr.path[i] === '' ? '' : attr.path[i];
+
         }
         attr.type = (!attr.type)?"innerhtml":attr.type;
         if (!Array.isArray(attr.type)) attr.type = [attr.type];
+        for(var i in attr.type){
+            if(attr.type[i].toLocaleLowerCase&&attr.type[i].toLocaleLowerCase()==="htmloption")attr.type[i]=vt_hOption;
+            if(attr.type[i].toLocaleLowerCase&&attr.type[i].toLocaleLowerCase()==="htmllist")attr.type[i]=vt_hList;
+            if(attr.type[i].toLocaleLowerCase&&attr.type[i].toLocaleLowerCase()==="innerhtml")attr.type[i]=vt_iHtml;
+            if(attr.type[i].toLocaleLowerCase&&attr.type[i].toLocaleLowerCase()==="value")attr.type[i]=vt_v;
+            if(attr.type[i].toLocaleLowerCase&&attr.type[i].toLocaleLowerCase()==="disables")attr.type[i]=vt_disabled;
+            if(attr.type[i].toLocaleLowerCase&&attr.type[i].toLocaleLowerCase()==="data")attr.type[i]=vt_data;
+        }
+
+
+
         if (!Array.isArray(attr.filter)) attr.filter = [attr.filter];
         element.attr = attr;
         return attr;
@@ -102,9 +122,8 @@ var tobserver = (function (window, document, undefined) {
 	 */
     function addNameToPath(path, name) {
 		if(!name)return path;
-        var p = path === "" ? name : path + '.' + name;
-		return p;
-	};
+        return path === "" ? name : path + '.' + name;
+	}
 	//two short helper
 	var returnFirst=function(e){return e;},
 		emptyFunction = function () {},
@@ -136,7 +155,7 @@ var tobserver = (function (window, document, undefined) {
 	 */
 	function updateUpdateObjectComplete(path, updateObject) {
 		var data = tobserver.getData(path);
-		for (var i in data) 
+		for (var i in data)
 			if (updateObject[i] !== undefined && data)
 				updateObject[i](path, data);
 	}
@@ -152,17 +171,18 @@ var tobserver = (function (window, document, undefined) {
 		for (var ii = 0; ii < array.length; ii++)
 			out += (out === '' ? '' : '.') + array[ii];
 		return out;
-	};
+	}
     //Helper END
 	/**
 	 * will return a tObservable, that observes the given path
 	 *
-	 * @param {type} pPath
+	 * @param {type} pathParts
 	 *      identifies the path, that you want to have
 	 * @returns {tobservable}
 	 */
-	Tobservable.prototype.get = function (pPath) {
-		var pathParts = (pPath + '').split('.');
+	Tobservable.prototype.get = function (pathParts) {
+        if( !(pathParts instanceof Array) )
+		  pathParts = (pathParts + '').split('.');
 		if (pathParts.length === 0)
 			return this;
 		else {
@@ -176,7 +196,7 @@ var tobserver = (function (window, document, undefined) {
 				);
 			} else {
 				pathParts.splice(0, 1);
-				return new Tobservable(this.data[name], this.observer, addNameToPath(this.path, name)).get(mergeToPath(pathParts));
+				return new Tobservable(this.data[name], this.observer, addNameToPath(this.path, name)).get(pathParts);
 			}
 		}
 	};
@@ -186,9 +206,10 @@ var tobserver = (function (window, document, undefined) {
 	 * @param {type} pPath
 	 *      identifies the path, that you want to have
 	 * @returns {tobservable}
-	 */ 
-	Tobservable.prototype.getData = function (pPath) {
-		var pathParts = (pPath + '').split('.');
+	 */
+	Tobservable.prototype.getData = function (pathParts) {
+        if( !(pathParts instanceof Array) )
+		  pathParts = (pathParts + '').split('.');
 		pathParts = removeEmptyStrings(pathParts);
 		var data=this.data;
 		for(var i in pathParts){
@@ -200,7 +221,7 @@ var tobserver = (function (window, document, undefined) {
 	};
 
     /**
-	 * used to set a value or execute a method on the data, 
+	 * used to set a value or execute a method on the data,
 	 *	it will notify the observer
 	 * @param {String} pPath
 	 *      identifing the data to update
@@ -210,9 +231,10 @@ var tobserver = (function (window, document, undefined) {
 	 *
 	 * @returns {void}
 	 */
-	Tobservable.prototype.innerSet = function (pPath, value, run) {
-		var pathParts = (pPath + '').split('.');
-		var name = pPath;
+	Tobservable.prototype.innerSet = function (pathParts, value, run) {
+        if( !(pathParts instanceof Array) )
+		  pathParts = (pathParts + '').split('.');
+		var name = pathParts;
 		if (pathParts.length === 0)
 			return null;
 		if (pathParts.length === 1) {
@@ -226,11 +248,11 @@ var tobserver = (function (window, document, undefined) {
 			}
 		} else {
 			name = pathParts.pop();
-			return this.get(mergeToPath(pathParts)).innerSet(name, value, run);
+			return this.get(pathParts).innerSet(name, value, run);
 		}
 	};
     /**
-	 * used to set a value or execute a method on the data, 
+	 * used to set a value or execute a method on the data,
 	 *	it will notify the observer
 	 * @param {String} pPath
 	 *      identifing the data to update
@@ -242,17 +264,16 @@ var tobserver = (function (window, document, undefined) {
 	 *     an option, to avoid sending the command to the server.
 	 * @param {Onject} socket
 	 *     an object, that has an emit(name, string), method, that will send the command to the server
-	 * 
+	 *
 	 * @returns {void}
 	 */
 	Tobservable.prototype.set = function (pPath, value, run,online,socket) {
-		//console.log(socket);
 		if(!run)run=false;
 		if(online===undefined)online=true;
-		
+
 		var data=tobserver.getData(pPath);
 		if(!run && data===value)return;
-		
+
 		this.notify(pPath,value,run,online,socket);
 		return this.innerSet(pPath, value, run);
 	};
@@ -268,13 +289,13 @@ var tobserver = (function (window, document, undefined) {
 	Tobservable.prototype.run = function (pPath, value) {
 			this.set(pPath, value, true);
 	};
-	
+
 
 	/**
 	 * used to register a opserver on the described path
 	 * (it is not calling the update merthod.)
 	 * @param {Observer} tObserver
-	 *      a function 
+	 *      a function
  	 * 		or an object like: {name:"someName",update:function(){}}
 	 * @param {type} pPath
 	 *      describes the path wherer the observer should be registered
@@ -311,7 +332,7 @@ var tobserver = (function (window, document, undefined) {
 	 *     an option, to avoid sending the command to the server.
 	 * @param {Onject} socket
 	 *     an object, that has an emit(name, string), method, that will send the command to the server
-	 * 
+	 *
 	 * @returns {void}
 	 */
 	Tobservable.prototype.notify = function (path, data, run, online, socket, round) {
@@ -319,7 +340,7 @@ var tobserver = (function (window, document, undefined) {
 		if (round === undefined) round = new Date().getTime() + "" + Math.random();
 		path = addNameToPath(this.path, path);
 		var index=this.notifyee.commands.indexOfIn(path,"path");
-		if (run || (data!==tobserver.getData(path)) && (index === -1 || !this.notifyee.commands[index].run )){ 
+		if (run || (data!==tobserver.getData(path)) && (index === -1 || !this.notifyee.commands[index].run )){
 			this.notifyee.commands.push({
 				path:path,
 				data:data,
@@ -332,7 +353,7 @@ var tobserver = (function (window, document, undefined) {
 				setTimeout(function () {
 					tobserver.notifyee.notify(round);
 				}, tobserver.notifyee.speed);
-		}																									
+		}
 	};
 	Array.prototype.indexOfIn=function(needle,propName){
 		for(var i in this){
@@ -341,7 +362,7 @@ var tobserver = (function (window, document, undefined) {
 		return -1;
 	};
 	Object.defineProperty(Array.prototype, "indexOfIn", { enumerable: false });
-	
+
 	/**
 	 * used by .notify to cache the update-Paths
 	 * @param {type} path
@@ -371,31 +392,31 @@ var tobserver = (function (window, document, undefined) {
 		},
 		/**
 		 * if onlineMode is false, the actions are not send live to the server.
-		 * this is used internally, to avoid sending changes to the server, 
+		 * this is used internally, to avoid sending changes to the server,
 		 * that are triggert by the views
 		 */
 		onlineMode:true,
 		/**
-		 * livemode, during an update-Round, the onlineMode is by default set to false. 
-		 * and reactivated afterwards. if the live mode is true, 
+		 * livemode, during an update-Round, the onlineMode is by default set to false.
+		 * and reactivated afterwards. if the live mode is true,
 		 * the changes made in the views are also send to the server.
 		 * but this is not nessasary, if all clients use the same data-Views.
 		 */
-		onlineLiveMode:false, 
+		onlineLiveMode:false,
         /**
          * list of notify-orders
          * {path:path,data:data,run:bool,online:bool,socket:Socket(.io)}
          */
-		commands: [],// 
+		commands: [],//
         /**
-         * path that whould not be 
+         * path that whould not be
          */
 		locals:[],
         /**
          * Method, that checks, if the update-order need to be send to the server.
          */
 		isLocal:function(path){
-			var locals=this.locals
+			var locals=this.locals;
 			for(var i in locals){
 				if(path.indexOf(locals[i])===0)return true;
 			}
@@ -416,7 +437,7 @@ var tobserver = (function (window, document, undefined) {
          */
 		speed: 1
 	};
- 	
+
 	/**
 	 * @class
 	 * @private
@@ -438,22 +459,23 @@ var tobserver = (function (window, document, undefined) {
 					this.addListener(pObserver, pNextPath);
 		}
         /**
-         * creates a Propertyname, that will hopefilly never match a name, 
+         * creates a Propertyname, that will hopefilly never match a name,
          * used by the application developed using tobservable
          * so, currently the problem will be, when the developer uses propertynames like
          * _t__t_name and _t_name what is quite improbable
          */
 		function toProertyname(name) {
 			return '_t_' + name;
-		};
+		}
 		/**
 		 * Only used by the Tobservable to manage the observer
 		 * @param {tobserbable} pObserver
 		 * @param {String} pNextPath
 		 * @returns {tobservable.observerTree}
 		 */
-		ObserverTree.prototype.addListener = function (pListener, pPath) {
-			var pathParts = pPath.split('.');
+		ObserverTree.prototype.addListener = function (pListener, pathParts) {
+            if( !(pathParts instanceof Array) )
+                pathParts = (pathParts + '').split('.');
 			pathParts = removeEmptyStrings(pathParts);
 			if (pathParts.length > 0) {
 				var prop = toProertyname(pathParts[0]);
@@ -461,7 +483,7 @@ var tobserver = (function (window, document, undefined) {
 				if (this[prop] === undefined)
 					this[prop] = new ObserverTree(pListener, mergeToPath(pathParts));
 				else
-					this[prop].addListener(pListener, mergeToPath(pathParts));
+					this[prop].addListener(pListener, pathParts);
 			} else
 				this.$listener.push(pListener);
 		};
@@ -489,7 +511,7 @@ var tobserver = (function (window, document, undefined) {
 			if (pathParts.length > 0) {
 				var propName = toProertyname(pathParts[0]);
 				if (this[propName] !== undefined) {
-					pathParts.splice(0, 1); 
+					pathParts.splice(0, 1);
 					this[propName].runUpdate(mergeToPath(pathParts), round);
 				}
 			} else
@@ -529,7 +551,7 @@ var tobserver = (function (window, document, undefined) {
 
 
 
-    
+
 	/**
 	 * the stdView, that is used for document-nodes
 	 * @class
@@ -538,6 +560,17 @@ var tobserver = (function (window, document, undefined) {
 	 * @returns {tobservable.StdElementView}
 	 */
 	Tobservable.prototype.StdElementView = function () {
+        //view types
+        var vt_hOption=8,//"htmloption",
+            vt_hList=1,//"htmllist",
+            vt_iHtml=2,//"innerhtml",
+            vt_v=3,//"value",
+            vt_disabled=4,
+            vt_data=5,//"disables";
+			vt_src=6,
+			vt_class=7;
+
+        var getAttr=tObserverNoStricts.getAttr;
 		/**
 		 *	Contstructor for a StdElementView
 		 *	it can be a simple view, or a htmlList-View.
@@ -553,14 +586,14 @@ var tobserver = (function (window, document, undefined) {
 			attr.defaultValue = [];
 			attr.preview = [];
 			for (var i in attr.type) {
-				if (attr.type[i].toLowerCase() === "htmllist" || attr.type[i].toLowerCase() === "htmloption" || attr.type[i].toLowerCase() === "innerhtml" ) {
+				if (attr.type[i] === vt_hList || attr.type[i] === vt_hOption|| attr.type[i] === vt_hOption ) {
 					attr.defaultValue[i] = element.innerHTML;
 					attr.preview[i] = this.element.innerHTML;
 					this.element.innerHTML = "";
 				} else {
 					attr.defaultValue[i] = element.getAttribute(attr.type);
 				}
-				if (attr.type[i] === "value") {
+				if (attr.type[i] === vt_v) {
 					this.folowElement(element);
 				}
 			}
@@ -581,8 +614,7 @@ var tobserver = (function (window, document, undefined) {
 				tobserver.on(attr.path[i], this);
 			this.update();
 		}
-        
-        var getAttr=tObserverNoStricts.getAttr;
+        StdElementView.prototype.templates={};
 		/**
 		 *	the standard updatemethod, called by the tObserver
 		 */
@@ -594,60 +626,57 @@ var tobserver = (function (window, document, undefined) {
 			for (var i = 0; i < maxLen; i++) {
 				var path = this.attr.path[i] === undefined ? path : this.attr.path[i];
 				type = !this.attr.type[i] ? type : this.attr.type[i];
-				filter=(type==="value"||type==="data") ? returnFirst : escapeHTML;
-				var v = tobserver.getData(path);
-				v = typeof v === "number" ? v + "" : v;
-				var orgData = v;
+				filter=(type===vt_v||type===vt_data||type == "src") ? returnFirst : escapeHTML;
+				var val = tobserver.getData(path);
+				val = typeof val === "number" ? val + "" : val;
+				var orgData = val;
 
 				filter = this.attr.filter[i] ? this.attr.filter[i] : filter ;
-				v = filter(v);
-				v = v!==undefined ? v : this.attr.defaultValue[i];
-				type = !this.attr.type[i] ? type : this.attr.type[i];
+				val = filter(val);
+				val = val!==undefined ? val : this.attr.defaultValue[i];
+				type = this.attr.type[i]===undefined ? type : this.attr.type[i];
 				switch (type) {
-				case 'innerhtml':
-				case 'innerHtml':
-				case 'innerHTML':
+				case vt_iHtml:
 				case undefined:
-                    if(!v)v=this.attr.defaultValue[i];
+                    if(!val)val=this.attr.defaultValue[i];
 					this.attr.beforeUpdate(this.element, function (element) {
-						if (element.innerHTML != v) {
-							element.innerHTML = v;
+						if (element.innerHTML != val) {
+							element.innerHTML = val;
 							element.attr.afterUpdate(element);
 						}
 						element.attr.afterUpdate(element);
 					});
 					break;
-				case 'data':
-					this.element.data=v;
+				case vt_data:
+					this.element.data=val;
 					break;
-				case 'htmllist':
-				case 'htmlList':
-					this.updateList(v, orgData);
+				case vt_hList:
+					this.updateList(val, orgData);
 					break;
-				case 'htmloption':
-				case 'htmlOption':
-					this.updateOption(v, orgData);
+				case vt_hOption:
+					this.updateOption(val, orgData);
 					break;
-				case 'value':
+				case vt_v:
 					this.attr.beforeUpdate(this.element, function (element) {
-						if (element.value == v)
+						if (element.value == val)
 							return;
-						element.value = v;
+						element.value = val;
 						element.attr.afterUpdate(element);
 					});
 					break;
 				default:
 					this.attr.beforeUpdate(this.element, function (element) {
-                        if(type == "disabled"){
-                            element.disabled=v;
-                        } else if (!(element.style[type] === undefined)  || type == "src" || type == "class") {
-							if (element.getAttribute(type) == v)
+                        if(type == vt_disabled){
+                            element.disabled=val;
+                        } else if (!(element.style[type] === undefined)  || type == vt_src || type == vt_class) {
+							if (element.getAttribute(type) == val)
 								return;
-							element.setAttribute(type, v);
+                            if(val===false) element.removeAttribute(type, val);
+                            else element.setAttribute(type, val);
 						} else {
-							if (element.style[type] == v)
+							if (element.style[type] == val)
 								return;
-							element.style[type] = v;
+							element.style[type] = val;
 						}
 						element.attr.afterUpdate(element);
 					});
@@ -655,7 +684,7 @@ var tobserver = (function (window, document, undefined) {
 			}
 		};
 		StdElementView.prototype.updateOption = function(data, orgData) {
-			if (data == false || data==undefined ||data==null) {
+			if (data === false) {
 				this.element.innerHTML = "";
 				this.element.display = "none";
 			} else {
@@ -773,7 +802,8 @@ var tobserver = (function (window, document, undefined) {
 
 		};
 		/**
-		 *	similar	to findAndUpdatePath, but findAndUpdatePath, only can be used for the initialisation of the object.
+		 *	similar	to findAndUpdatePath, but findAndUpdatePath,
+		 * only can be used for the initialisation of the object.
 		 */
 		StdElementView.prototype.updateRootPath = function(element, newRootPath, oldRootPath) {
 			if (!element) return;
@@ -784,7 +814,7 @@ var tobserver = (function (window, document, undefined) {
 				if (kids[i].attr) {
 					for (var ii in kids[i].attr.path) {
 						var realOrgPath = kids[i].attr.path[ii].replace(oldRootPath + '.', '');
-						if (kids[i].attr.type[ii].toLowerCase() == 'htmllist') {
+						if (kids[i].attr.type[ii] == vt_hList) {
 							this.updateRootPath(kids[i], realOrgPath + "." + realOrgPath, oldRootPath + "." + realOrgPath);
 						}
 						tobserver.off(kids[i].attr.path[ii] + "." + kids[i]._tName);
@@ -800,7 +830,7 @@ var tobserver = (function (window, document, undefined) {
 			var change = function () {
 				var attr = element.attr;
 				for (var i in attr.path) {
-					if (attr.type[i] === "value") {
+					if (attr.type[i] === vt_v) {
 						var value = element.value;
 						var type = element.getAttribute("type");
 						if (type !== null && type.toLocaleLowerCase().trim() === "number")
@@ -814,7 +844,7 @@ var tobserver = (function (window, document, undefined) {
 			element.addEventListener("change", change);
 			element.addEventListener("keyup", change);
 		};
-		
+
 		/**
 		 * get all HTML objects with the given klass, and makes a view with them.
 		 * if also register observer ther on the DOM to create StdViews for the elements that are new Created
@@ -843,11 +873,11 @@ var tobserver = (function (window, document, undefined) {
 		};
         /**
          * searches for tobserver on the HTML.
-         * tObserver are html-elements that have an tobserver-Attribute, 
+         * tObserver are html-elements that have an tobserver-Attribute,
          * with a structure described on the docu.
-         * 
-         * @param {htmlNode} element    
-         *      the Element where to analyse all childs. 
+         *
+         * @param {htmlNode} element
+         *      the Element where to analyse all childs.
          *      if undefined the html-node is taken.
          */
 		StdElementView.findTObserver = function (element) {
@@ -860,9 +890,13 @@ var tobserver = (function (window, document, undefined) {
 				for (var s in kids)
 					StdElementView.findTObserver(kids[s]);
 			else {
-				element.attr = attr;
-				new tobserver.StdElementView(element, tobserver);
-
+				//if(element.tagName.toUpperCase()==="TEMPLATE" && element.getAttribute("name") != null){
+				//	tobserver.StdElementView.templates[element.getAttribute("name")]=element.innerHTML;
+				//	element.style.display="none";
+				//} else {
+					element.attr = attr;
+					new tobserver.StdElementView(element, tobserver);
+				//}
 			}
 		};
 
@@ -895,9 +929,9 @@ var tobserver = (function (window, document, undefined) {
 
 		},
 		/**
-		 * linkes two paths, where one the secound path is an array, 
+		 * linkes two paths, where one the secound path is an array,
 		 * that contains the object under the first path.
-		 * 
+		 *
 		 * is used, when on both paths should be stored the same object.
 		 * it is not updating the data (because this is happend automaticly)
 		 * but it makes sure, that the observer on both sites are activated.
@@ -937,7 +971,7 @@ var tobserver = (function (window, document, undefined) {
 		},
 		/**
 		 *  constructor for LinkFromArrayView
-		 * the link from an array to an object, the method only notifies the elementPath-Views, 
+		 * the link from an array to an object, the method only notifies the elementPath-Views,
 		 * if the depending element has changed, not if anything changed(smart)
 		 * @param {String} elementPath
 		 * @param {String} arrayPath
@@ -1068,7 +1102,7 @@ var tobserver = (function (window, document, undefined) {
 			// Handles objects with the built-in `forEach`, arrays, and raw objects.
 			// Delegates to **ECMAScript 5**'s native `forEach` if available.
 			var each = _.each = _.forEach = function (obj, iterator, context) {
-				if (obj == null) return obj;
+				if (obj === null) return obj;
 				var i, length;
 				if (nativeForEach && obj.forEach === nativeForEach) {
 					obj.forEach(iterator, context);
@@ -1096,7 +1130,7 @@ var tobserver = (function (window, document, undefined) {
 			_.some = _.any = function (obj, predicate, context) {
 				//predicate || (predicate = _.identity);
 				var result = false;
-				if (obj == null) return result;
+				if (obj === null) return result;
 				if (nativeSome && obj.some === nativeSome) return obj.some(predicate, context);
 				each(obj, function (value, index, list) {
 					if (result || (result = predicate.call(context, value, index, list))) return breaker;
@@ -1160,7 +1194,7 @@ var tobserver = (function (window, document, undefined) {
 			// Get the cross-browser normalized URL fragment, either from the URL,
 			// the hash, or the override.
 			History.prototype.getFragment = function (fragment, forcePushState) {
-				if (fragment == null) {
+				if (fragment === null) {
 					if (this._hasPushState || !this._wantsHashChange || forcePushState) {
 						fragment = decodeURI(this.location.pathname + this.location.search);
 						var root = this.root.replace(trailingSlash, '');
@@ -1237,8 +1271,8 @@ var tobserver = (function (window, document, undefined) {
 					}
 
 				}
-				// my extension to the startMethod to update the Links, 
-				// and let them not navigate, 
+				// my extension to the startMethod to update the Links,
+				// and let them not navigate,
 				// but update the the history
 				$(document).on("click", "a[href^='/']", function (event) {
 					var href = $(event.currentTarget).attr('href');
@@ -1495,15 +1529,15 @@ var tobserver = (function (window, document, undefined) {
 			});
 		},
 		/**
-		 * An JQuerySocket - class, that can be used as a socket. 
+		 * An JQuerySocket - class, that can be used as a socket.
 		 * requires jQuery do send all changes on the data to the server,
 		 * for example an php-server. on node it is recommented to use socket.io
-		 * 
+		 *
 		 */
 		jQuerySocket:function JQuerySocket(file){
 			this.emit=function emit(name,data){
 				$.post(file,{name:name,data:data});
-			}
+			};
 		}
 	};
 
