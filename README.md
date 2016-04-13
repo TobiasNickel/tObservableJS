@@ -1,3 +1,6 @@
+# DEPRICATED, this project is not in development.
+Using this project I proved a concept for a special way of databinding. Today you will better use React/flux/redix, Vue.js, or for fullstack MetheorJS.
+
 # tObservableJS
 
 tObservableJS is not just two way binding, it is All-Way-Binding ! ! 
